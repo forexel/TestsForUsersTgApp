@@ -1,0 +1,72 @@
+version: "3.9"
+
+services:
+  db:
+    image: postgres:15-alpine
+    environment:
+      POSTGRES_DB: tests_for_users
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: postgres
+    volumes:
+      - db_data:/var/lib/postgresql/data
+    ports:
+      - "5432:5432"
+    healthcheck:
+      test: ["CMD", "pg_isready", "-d", "tests_for_users", "-U", "postgres"]
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  api:
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+    environment:
+      APP_NAME: TestsForUsers API
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/tests_for_users
+    depends_on:
+      db:
+        condition: service_healthy
+    ports:
+      - "8000:8000"
+    command: ["uvicorn", "app.main:app", "--host", "0.0.0.0", "--port", "8000"]
+
+  migrator:
+    build:
+      context: ..
+      dockerfile: api/Dockerfile
+    depends_on:
+      db:
+        condition: service_healthy
+    environment:
+      DATABASE_URL: postgresql+psycopg://postgres:postgres@db:5432/tests_for_users
+    command: ["alembic", "upgrade", "head"]
+
+  bot:
+    build:
+      context: ..
+      dockerfile: bot/Dockerfile
+    environment:
+      BOT_BOT_TOKEN: ${BOT_BOT_TOKEN:-}
+      BOT_API_BASE_URL: http://api:8000/api/v1
+      BOT_WEBAPP_URL: ${BOT_WEBAPP_URL:-http://localhost:8080}
+      BOT_ADMIN_IDS: ${BOT_ADMIN_IDS:-[]}
+    depends_on:
+      api:
+        condition: service_started
+
+  webapp:
+    build:
+      context: ..
+      dockerfile: webapp/Dockerfile
+      args:
+        VITE_API_BASE_URL: ${WEBAPP_API_BASE_URL:-http://localhost:8000/api/v1}
+        VITE_BOT_USERNAME: ${WEBAPP_BOT_USERNAME:-your_bot_username}
+    depends_on:
+      api:
+        condition: service_started
+    ports:
+      - "8080:80"
+
+volumes:
+  db_data:
