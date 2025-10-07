@@ -1,5 +1,3 @@
-обновил -  персобрал. скролл никуда не делся, высота экрана по умолчанию очень большая. что ещобновил -  персобрал. скролл никуда не делся, высота экрана по умолчанию очень большая. что ещfrom __future__ import annotations
-
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import CallbackQueryHandler, ContextTypes
 
@@ -10,7 +8,6 @@ import os
 import json
 import urllib.request
 from bot.config import get_settings
-git add .
 
 SUPPORTED_TYPES = {"single"}
 
