@@ -1,6 +1,7 @@
 from functools import lru_cache
 from typing import List
 
+import json
 from pydantic import BaseSettings, validator
 
 
@@ -10,6 +11,11 @@ class Settings(BaseSettings):
     database_url: str = "postgresql+psycopg://postgres:postgres@db:5432/tests_for_users"
     s3_endpoint: str | None = None
     s3_bucket: str | None = None
+    s3_access_key: str | None = None
+    s3_secret_key: str | None = None
+    s3_region: str | None = None
+    s3_use_path_style: bool = True
+    s3_public_base_url: str | None = None
     admin_ids: List[int] = []
     bot_token: str = ""
 
@@ -30,9 +36,18 @@ class Settings(BaseSettings):
     @validator("admin_ids", pre=True)
     def parse_admin_ids(cls, value):
         if isinstance(value, str):
-            if not value.strip():
+            s = value.strip()
+            if not s:
                 return []
-            return [int(item.strip()) for item in value.split(",") if item.strip()]
+            # accept JSON array format, e.g. "[123,456]"
+            if s.startswith("[") and s.endswith("]"):
+                try:
+                    arr = json.loads(s)
+                    return [int(item) for item in arr]
+                except Exception:
+                    pass
+            # accept comma-separated string, e.g. "123,456"
+            return [int(item.strip()) for item in s.split(",") if item.strip()]
         return value
 
 

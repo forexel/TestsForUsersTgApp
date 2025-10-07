@@ -4,7 +4,7 @@ import uuid
 
 from sqlalchemy.orm import Session
 
-from api.app.models import Answer, Question, Result, Test
+from api.app.models import Answer, Question, Result, Test, TestType
 from api.app.schemas import TestCreate, TestUpdate
 
 
@@ -16,6 +16,13 @@ def _dump(model):
 
 def create_test(db: Session, payload: TestCreate, *, created_by: int) -> Test:
     data = _dump(payload)
+    # normalize incoming type to enum value (lowercase)
+    if "type" in data:
+        t = data["type"]
+        if isinstance(t, TestType):
+            data["type"] = t.value
+        elif isinstance(t, str):
+            data["type"] = t.lower()
     questions_data = data.pop("questions", [])
     answers_data = data.pop("answers", [])
     results_data = data.pop("results", [])

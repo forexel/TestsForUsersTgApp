@@ -14,3 +14,7 @@ build/
 .DS_Store
 *.log
 
+
+# Local keys
+key_tests
+*.pem

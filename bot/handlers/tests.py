@@ -1,10 +1,15 @@
-from __future__ import annotations
+обновил -  персобрал. скролл никуда не делся, высота экрана по умолчанию очень большая. что ещобновил -  персобрал. скролл никуда не делся, высота экрана по умолчанию очень большая. что ещfrom __future__ import annotations
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import CallbackQueryHandler, ContextTypes
 
 from bot.services.api_client import ApiClient
 from bot.services.session_store import session_store
+
+import os
+import json
+import urllib.request
+from bot.config import get_settings
 
 SUPPORTED_TYPES = {"single"}
 
@@ -18,38 +23,58 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if not message:
         return
 
+    # Extract slug from `/start run_<slug>`
     slug = None
-    if context.args:
-        argument = context.args[0]
-        if argument.startswith("run_"):
-            slug = argument.removeprefix("run_")
-
-    if not slug:
-        await message.reply_text("Привет! Отправьте ссылку вида t.me/<bot>?start=run_<slug> чтобы пройти тест.")
-        return
-
-    client = ApiClient()
     try:
-        test = await client.get_public_test(slug)
-    finally:
-        await client.aclose()
+        if context.args:
+            arg = context.args[0]
+            if isinstance(arg, str) and arg.startswith("run_"):
+                slug = arg.removeprefix("run_")
+    except Exception:
+        slug = None
 
-    if not test:
-        await message.reply_text("Тест не найден или недоступен.")
+    # Resolve WebApp base URL
+    try:
+        settings = get_settings()
+        base_url = getattr(settings, "webapp_url", None)
+    except Exception:
+        base_url = None
+    base_url = (base_url or os.getenv("BOT_WEBAPP_URL", "http://localhost:8080")).rstrip("/")
+
+    if slug:
+        # Try to get test title from API (public endpoint); fall back to slug
+        title = slug
+        try:
+            api_base = os.getenv("BOT_API_BASE_URL") or getattr(get_settings(), "api_base_url", "")
+            api_base = str(api_base).rstrip("/")
+            url = f"{api_base}/tests/slug/{slug}/public"
+            with urllib.request.urlopen(url, timeout=5) as resp:
+                if resp.status == 200 and "application/json" in (resp.headers.get("Content-Type") or ""):
+                    data = json.loads(resp.read().decode("utf-8"))
+                    if isinstance(data, dict) and data.get("title"):
+                        title = str(data["title"])
+        except Exception:
+            pass
+
+        # Preferred: open mini‑app with start param that WebApp parses (Home.tsx → extractStartParam)
+        webapp_url = f"{base_url}/?tgWebAppStartParam=run_{slug}"
+        kb = InlineKeyboardMarkup(
+            [[InlineKeyboardButton(text="Открыть тест", web_app=WebAppInfo(url=webapp_url))]]
+        )
+        await message.reply_text(
+            f'тест "{title}" ', reply_markup=kb
+        )
         return
 
-    test_type = test.get("type")
-    if test_type not in SUPPORTED_TYPES:
-        await message.reply_text("Пока что бот поддерживает только тесты с одним вопросом.")
-        return
-
-    user = update.effective_user
-    if not user:
-        await message.reply_text("Не удалось определить пользователя.")
-        return
-
-    session = session_store.start_session(user_id=user.id, chat_id=message.chat_id, slug=slug, test=test)
-    await send_single_question(message, session)
+    # No slug provided → offer to open app root
+    kb = InlineKeyboardMarkup(
+        [[InlineKeyboardButton(text="Открыть мини‑приложение", web_app=WebAppInfo(url=f"{base_url}"))]]
+    )
+    await message.reply_text(
+        "Привет! Отправьте ссылку вида t.me/<bot>?start=run_<slug> чтобы пройти тест,\nили откройте мини‑приложение:",
+        reply_markup=kb,
+    )
+    return
 
 
 async def send_single_question(message, session):
@@ -132,6 +157,12 @@ def build_result_text(answer, test):
             title = result.get("title", "Результат")
             description = result.get("description", "")
             return f"{title}\n\n{description}".strip()
+
+    # fallback to per-answer explanation if provided
+    if answer.get("explanation_title") or answer.get("explanation_text"):
+        title = answer.get("explanation_title") or "Результат"
+        description = answer.get("explanation_text") or ""
+        return f"{title}\n\n{description}".strip()
 
     if answer.get("is_correct") is True:
         return "Верно! Поздравляем."

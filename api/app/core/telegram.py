@@ -6,10 +6,13 @@ import json
 from dataclasses import dataclass
 from datetime import datetime, timedelta, timezone
 from urllib.parse import parse_qsl
+import logging
 
 from fastapi import HTTPException, status
 
 from api.app.core.config import get_settings
+logger = logging.getLogger("api.tg_auth")
+logger.setLevel(logging.DEBUG)
 
 
 @dataclass
@@ -30,39 +33,54 @@ class TelegramInitData:
 
 
 def parse_init_data(init_data: str) -> TelegramInitData:
+    logger.info("parse_init_data: received init_data length=%s", len(init_data or ""))
     if not init_data:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing init data")
 
     data = dict(parse_qsl(init_data, keep_blank_values=True))
+    logger.info("parse_init_data: keys=%s", sorted(list(data.keys())))
     hash_value = data.pop("hash", None)
     if not hash_value:
+        logger.warning("parse_init_data: missing hash")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing hash")
 
     settings = get_settings()
+    logger.info("parse_init_data: bot_token_present=%s", bool(settings.bot_token))
     if not settings.bot_token:
         raise HTTPException(status_code=status.HTTP_500_INTERNAL_SERVER_ERROR, detail="Bot token not configured")
 
-    secret_key = hashlib.sha256(settings.bot_token.encode()).digest()
+    secret_key = hmac.new(b"WebAppData", settings.bot_token.encode(), hashlib.sha256).digest()
     data_check_string = "\n".join(f"{k}={v}" for k, v in sorted(data.items()))
+    logger.info("parse_init_data: data_check_string=%r", data_check_string)
     computed_hash = hmac.new(secret_key, data_check_string.encode(), hashlib.sha256).hexdigest()
+    logger.info(
+        "parse_init_data: received_hash_prefix=%s computed_hash_prefix=%s",
+        (hash_value or "")[:10],
+        computed_hash[:10],
+    )
     if not hmac.compare_digest(computed_hash, hash_value):
+        logger.warning("parse_init_data: signature mismatch")
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Invalid init data signature")
 
     auth_date_raw = data.get("auth_date")
+    logger.info("parse_init_data: auth_date_raw=%s", auth_date_raw)
     if not auth_date_raw:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing auth_date")
 
     auth_dt = datetime.fromtimestamp(int(auth_date_raw), tz=timezone.utc)
     if datetime.now(timezone.utc) - auth_dt > timedelta(hours=24):
+        logger.warning("parse_init_data: init data expired: auth_dt=%s now=%s", auth_dt.isoformat(), datetime.now(timezone.utc).isoformat())
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Init data expired")
 
     user_raw = data.get("user")
+    logger.info("parse_init_data: has_user=%s", bool(user_raw))
     if not user_raw:
         raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing user info")
 
     try:
         user_data = json.loads(user_raw)
     except json.JSONDecodeError as exc:
+        logger.warning("parse_init_data: malformed user json: %s", user_raw[:80] if user_raw else None)
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Malformed user data") from exc
 
     user = TelegramUser(
@@ -73,4 +91,5 @@ def parse_init_data(init_data: str) -> TelegramInitData:
         language_code=user_data.get("language_code"),
     )
 
+    logger.info("parse_init_data: ok user_id=%s auth_ts=%s", user.id, int(auth_dt.timestamp()))
     return TelegramInitData(query_id=data.get("query_id"), user=user, auth_date=auth_dt, raw=init_data)

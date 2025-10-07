@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 from datetime import datetime
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, Field, ConfigDict
 
 from api.app.models import TestType
 
@@ -23,12 +23,15 @@ class ResultRead(ResultBase):
     id: uuid.UUID
 
     class Config:
+        orm_mode = True
         json_encoders = {uuid.UUID: str}
 
 
 class AnswerBase(BaseModel):
     order_num: int
     text: str | None = None
+    explanation_title: str | None = None
+    explanation_text: str | None = None
     image_url: str | None = None
     weight: int | None = None
     is_correct: bool | None = None
@@ -44,6 +47,7 @@ class AnswerRead(AnswerBase):
     id: uuid.UUID
 
     class Config:
+        orm_mode = True
         json_encoders = {uuid.UUID: str}
 
 
@@ -61,6 +65,7 @@ class QuestionRead(QuestionBase):
     answers: list[AnswerRead]
 
     class Config:
+        orm_mode = True
         json_encoders = {uuid.UUID: str}
 
 
@@ -72,7 +77,7 @@ class TestBase(BaseModel):
 
 
 class TestCreate(TestBase):
-    slug: str
+    slug: str | None = None
     questions: list[QuestionCreate] = Field(default_factory=list)
     answers: list[AnswerCreate] = Field(default_factory=list)
     results: list[ResultCreate] = Field(default_factory=list)
@@ -97,6 +102,7 @@ class TestRead(TestBase):
     results: list[ResultRead]
 
     class Config:
+        orm_mode = True
         json_encoders = {uuid.UUID: str, datetime: lambda dt: dt.isoformat()}
 
 

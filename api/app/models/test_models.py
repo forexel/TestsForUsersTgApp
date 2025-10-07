@@ -23,7 +23,15 @@ class Test(Base):
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     slug: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
-    type: Mapped[TestType] = mapped_column(SqlEnum(TestType, name="test_type"), nullable=False)
+    type: Mapped[TestType] = mapped_column(
+        SqlEnum(
+            TestType,
+            name="test_type",
+            values_callable=lambda e: [i.value for i in e],
+            validate_strings=True,
+        ),
+        nullable=False,
+    )
     description: Mapped[str | None] = mapped_column(Text())
     is_public: Mapped[bool] = mapped_column(Boolean(), default=False, nullable=False)
     created_by: Mapped[int] = mapped_column(BigInteger(), nullable=False)
@@ -93,6 +101,8 @@ class Answer(Base):
     result_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("results.id", ondelete="SET NULL"))
     order_num: Mapped[int] = mapped_column(Integer(), nullable=False)
     text: Mapped[str | None] = mapped_column(Text())
+    explanation_title: Mapped[str | None] = mapped_column(String(255))
+    explanation_text: Mapped[str | None] = mapped_column(Text())
     image_url: Mapped[str | None] = mapped_column(Text())
     weight: Mapped[int | None] = mapped_column(Integer())
     is_correct: Mapped[bool | None] = mapped_column(Boolean())

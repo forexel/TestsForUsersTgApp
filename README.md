@@ -49,9 +49,58 @@
 - PostgreSQL: `localhost:5432` (`postgres/postgres`).
 - Бот работает в режиме polling и готов к deep-link `t.me/<bot>?start=run_<slug>`.
 
+### Локальный S3 (MinIO)
+
+В compose уже включены службы `minio` и `minio-setup`:
+
+- Консоль MinIO: `http://localhost:9001` (логин/пароль из `.env`: `S3_ACCESS_KEY`/`S3_SECRET_KEY`).
+- S3 endpoint: `http://localhost:9000`.
+- Бакет создаётся автоматически: `S3_BUCKET` (по умолчанию `test-media`), на нём включён анонимный download.
+
+Переменные окружения для API:
+
+```
+S3_ENDPOINT=http://minio:9000         # внутри docker сети
+S3_BUCKET=test-media
+S3_ACCESS_KEY=minioadmin
+S3_SECRET_KEY=minioadmin
+S3_REGION=us-east-1
+S3_USE_PATH_STYLE=true
+S3_PUBLIC_BASE_URL=http://localhost:9000/test-media
+```
+
+Команды запуска c MinIO:
+
+```bash
+cd deploy
+docker compose up -d --build
+
+# проверить логи и создание бакета
+docker compose logs -f minio minio-setup
+
+# остановить окружение
+docker compose down
+
+# очистить данные minio/postgres
+docker volume ls | grep TestsForUsersTgApp | awk '{print $2}' | xargs -I{} docker volume rm {}
+```
+
+Проверка загрузки через API:
+
+```bash
+curl -F "file=@/path/to/image.jpg" \
+     -H "X-Telegram-Init-Data: <init-data-from-telegram>" \
+     http://localhost:8000/api/v1/media/upload
+```
+
+В ответ придёт JSON `{ "url": "http://localhost:9000/test-media/....", "key": "..." }`.
+
 ## Создание и прохождение теста
 1. Откройте в Telegram бота → `/admin` → кнопку «Открыть конструктор» (WebApp).
-2. В конструкторе выберите тип теста, заполните форму (название, slug, вопросы/ответы/результаты), отметьте «Опубликовать тест» и сохраните.
+2. В конструкторе выберите тип теста и заполните шаги:
+   - Один вопрос — 2 шага (название → вопрос/ответы).
+   - Несколько вопросов — 2 шага (название + метод подсчёта → вопросы/ответы/результаты).
+   - Выбор карты — 2 шага (название + вопрос + режим open/closed → карты). Каждая карта: загрузка изображения (в S3), заголовок и описание; 2–6 карт.
 3. Скопируйте ссылку `t.me/<bot>?start=run_<slug>` из уведомления.
 4. Отправьте ссылку себе или пользователям. Бот загрузит тест и предложит варианты ответов. Для `single`-теста результат выводится после выбора ответа.
 
@@ -99,3 +148,4 @@ npm run dev -- --host --port 5173
 - `deploy/docker-compose.yml` можно расширить Nginx-прокси/SSL для продакшена.
 - WebApp Dockerfile принимает аргументы `VITE_API_BASE_URL` и `VITE_BOT_USERNAME` для сборки.
 - Результаты тестов и сессии сейчас хранятся в памяти бота; перед продом имеет смысл перенести в БД и добавить метрики.
+- Для карточек WebApp поддерживает загрузку изображений прямо в S3 (через `/media/upload`).

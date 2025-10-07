@@ -1,3 +1,4 @@
+import json
 from functools import lru_cache
 from typing import List
 
@@ -17,9 +18,20 @@ class BotSettings(BaseSettings):
     @validator("admin_ids", pre=True)
     def parse_admin_ids(cls, value):
         if isinstance(value, str):
-            if not value.strip():
+            raw = value.strip()
+            if not raw:
                 return []
-            return [int(item.strip()) for item in value.split(",") if item.strip()]
+            try:
+                data = json.loads(raw)
+                if isinstance(data, list):
+                    return [int(item) for item in data]
+            except json.JSONDecodeError:
+                pass
+            for delimiter in (",", " "):
+                if delimiter in raw:
+                    parts = [item.strip() for item in raw.split(delimiter) if item.strip()]
+                    return [int(item) for item in parts]
+            return [int(raw)]
         return value
 
 

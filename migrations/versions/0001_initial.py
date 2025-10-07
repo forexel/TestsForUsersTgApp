@@ -15,15 +15,25 @@ depends_on: Union[str, Sequence[str], None] = None
 
 
 def upgrade() -> None:
-    test_type_enum = sa.Enum("single", "cards", "multi", name="test_type")
-    test_type_enum.create(op.get_bind(), checkfirst=True)
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF NOT EXISTS (SELECT 1 FROM pg_type WHERE typname = 'test_type') THEN
+                CREATE TYPE test_type AS ENUM ('single', 'cards', 'multi');
+            END IF;
+        END$$;
+        """
+    )
+
+    test_type = postgresql.ENUM("single", "cards", "multi", name="test_type", create_type=False)
 
     op.create_table(
         "tests",
         sa.Column("id", postgresql.UUID(as_uuid=True), primary_key=True, nullable=False),
         sa.Column("slug", sa.String(length=128), nullable=False, unique=True),
         sa.Column("title", sa.String(length=255), nullable=False),
-        sa.Column("type", test_type_enum, nullable=False),
+        sa.Column("type", test_type, nullable=False),
         sa.Column("description", sa.Text(), nullable=True),
         sa.Column("is_public", sa.Boolean(), nullable=False, server_default=sa.false()),
         sa.Column("created_by", sa.BigInteger(), nullable=False),
@@ -68,6 +78,8 @@ def upgrade() -> None:
         sa.Column("result_id", postgresql.UUID(as_uuid=True), sa.ForeignKey("results.id", ondelete="SET NULL"), nullable=True),
         sa.Column("order_num", sa.Integer(), nullable=False),
         sa.Column("text", sa.Text(), nullable=True),
+        sa.Column("explanation_title", sa.String(length=255), nullable=True),
+        sa.Column("explanation_text", sa.Text(), nullable=True),
         sa.Column("image_url", sa.Text(), nullable=True),
         sa.Column("weight", sa.Integer(), nullable=True),
         sa.Column("is_correct", sa.Boolean(), nullable=True),
@@ -93,5 +105,13 @@ def downgrade() -> None:
     op.drop_table("results")
     op.drop_table("tests")
 
-    test_type_enum = sa.Enum("single", "cards", "multi", name="test_type")
-    test_type_enum.drop(op.get_bind(), checkfirst=True)
+    op.execute(
+        """
+        DO $$
+        BEGIN
+            IF EXISTS (SELECT 1 FROM pg_type WHERE typname = 'test_type') THEN
+                DROP TYPE test_type;
+            END IF;
+        END$$;
+        """
+    )
