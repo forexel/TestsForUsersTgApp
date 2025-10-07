@@ -1,3 +1,10 @@
+
+/* Disable global page scrollbar; allow inner containers to scroll only when needed */
+html, body, #root { height: 100%; }
+body { overflow: hidden; }
+
+/* Hide any leftover debug panel (safety net) */
+details.debug-panel { display: none !important; }
 :root {
   color-scheme: light;
   font-family: "Inter", -apple-system, BlinkMacSystemFont, "Segoe UI", sans-serif;
@@ -10,14 +17,19 @@ body {
 }
 
 .screen {
-  min-height: 100vh;
+  height: 100vh;
+  overflow-y: auto;
+  overflow-x: hidden;
+  min-height: 0;     /* важно для flex-контейнера */
   padding: 16px;
   display: flex;
   flex-direction: column;
   gap: 16px;
-  max-width: 480px;
+  max-width: 700px;
   margin: 0 auto;
 }
+
+.screen > .card.form-card { min-height: 0; }  /* иначе иногда не даёт скроллиться */
 
 .card {
   background: white;
@@ -29,11 +41,10 @@ body {
   gap: 12px;
 }
 
-.header {
-  display: flex;
-  justify-content: space-between;
-  align-items: center;
-}
+.hero { padding: 20px; }
+.hero-title { font-size: 32px; line-height: 1.1; margin: 0; font-weight: 800; }
+.hero-sub { margin: 4px 0 0; color: rgba(15,23,42,.6); font-weight: 500; }
+.hero-actions { margin-top: 8px; }
 
 .grid {
   display: grid;
@@ -74,6 +85,30 @@ button:disabled {
   font-weight: 500;
 }
 
+/* inline label + control for editor step 1 */
+.label-inline {
+  display: flex;
+  flex-direction: row;
+  align-items: center;
+  gap: 12px;
+}
+.label-inline .label-text {
+  min-width: 160px;
+  font-weight: 600;
+}
+.label-inline input,
+.label-inline textarea {
+  flex: 1 1 auto;
+}
+@media (max-width: 560px) {
+  .label-inline { flex-direction: column; align-items: stretch; }
+  .label-inline .label-text { min-width: 0; }
+}
+
+.form-card { padding: 20px 18px; }
+.form-title { font-size: 26px; line-height: 1.2; margin: 0 0 8px; font-weight: 800; }
+.publish-row { display: flex; justify-content: center; margin: 6px 0 2px; }
+
 input,
 textarea {
   border-radius: 10px;
@@ -102,6 +137,15 @@ textarea {
   gap: 12px;
 }
 
+.editor-section--tight {
+  margin-top: 8px;
+  gap: 10px;
+}
+
+.form-title--tight {
+  margin-bottom: 12px;
+}
+
 .editor-block {
   border-radius: 12px;
   padding: 12px;
@@ -113,8 +157,89 @@ textarea {
 
 .answer-row {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(120px, 1fr));
-  gap: 8px;
+  grid-template-columns: 1fr auto;
+  gap: 10px;
+}
+
+.answer-col.fit { display: flex; align-items: center; gap: 10px; }
+
+.card-editor {
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+  padding: 12px;
+  border-radius: 16px;
+  background: rgba(37, 99, 235, 0.06);
+}
+
+.card-editor__header {
+  font-weight: 700;
+  font-size: 16px;
+}
+
+.card-editor__body {
+  display: flex;
+  gap: 16px;
+  align-items: stretch;
+}
+
+.card-editor__fields {
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+
+.card-editor__fields textarea {
+  min-height: 100px;
+  resize: vertical;
+}
+
+.card-uploader {
+  width: 120px;
+  height: 160px;
+  border-radius: 16px;
+  border: 2px dashed rgba(37,99,235,0.45);
+  background: rgba(191, 219, 254, 0.35);
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  cursor: pointer;
+  overflow: hidden;
+  position: relative;
+  transition: border-color 0.2s ease, background 0.2s ease;
+}
+
+.card-uploader:hover {
+  border-color: rgba(37,99,235,0.8);
+  background: rgba(191,219,254,0.55);
+}
+
+.card-uploader img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+}
+
+.card-uploader__plus {
+  font-size: 42px;
+  line-height: 1;
+  color: #2563eb;
+  font-weight: 600;
+}
+
+.card-uploader.is-loading::after {
+  content: "";
+  position: absolute;
+  inset: 0;
+  background: rgba(255,255,255,0.6);
+  animation: card-upload-pulse 1.2s infinite;
+}
+
+@keyframes card-upload-pulse {
+  0% { opacity: 0.6; }
+  50% { opacity: 0.2; }
+  100% { opacity: 0.6; }
 }
 
 .answers {
@@ -128,6 +253,8 @@ textarea {
   justify-content: space-between;
   gap: 12px;
 }
+.actions.bottom { margin-top: 16px; }
+.btn-wide { width: 100%; border-radius: 20px; }
 
 .error {
   color: #dc2626;
@@ -137,8 +264,103 @@ textarea {
   color: #15803d;
   word-break: break-all;
 }
+.success-text { margin: 8px 0 6px; }
+.success-link { color: #2563eb; text-decoration: underline; }
+
+/* Success screen buttons: компактнее и без переноса текста */
+.success button {
+  padding: 10px 14px;
+  font-size: 15px;
+  line-height: 1.15;
+  white-space: nowrap; /* «На главную» в одну строку */
+}
+.success .actions { gap: 10px; }
 
 .muted {
   color: rgba(15, 23, 42, 0.6);
   margin: 0;
+}
+
+/* chooser */
+.chooser-title { font-size: 24px; font-weight: 800; margin: 4px 0 8px; }
+.chooser-list { display: grid; gap: 14px; }
+
+.choice-btn {
+  display: block;
+  width: 100%;
+  text-align: left;
+  padding: 16px 18px;
+  border-radius: 20px;
+  background: linear-gradient(135deg, #0ea5e9, #0284c7);
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.2), 0 6px 18px rgba(2,132,199,.25);
+}
+.choice-btn strong { display: inline; font-size: 18px; margin-right: 6px; }
+.choice-btn span { opacity: .95; }
+
+/* simple radio selector look */
+.selector-title { font-size: 22px; font-weight: 800; color: #2563eb; margin: 4px 0 12px; }
+.radio-list { display: flex; flex-direction: column; gap: 12px; padding: 4px 2px 16px; }
+.radio-item { display: flex; align-items: center; gap: 10px; font-size: 16px; }
+.actions.bottom { display: flex; justify-content: space-between; margin-top: 18px; }
+
+
+.list { display: flex; flex-direction: column; gap: 10px; }
+.list-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid rgba(15,23,42,.08); border-radius: 12px; }
+.list-link { color: #0f172a; text-decoration: none; font-weight: 600; }
+.list-actions { display: flex; align-items: center; gap: 8px; }
+button.icon { padding: 6px 8px; border-radius: 10px; background: #f8fafc; }
+button.icon.danger { background: #fff1f2; }
+button.icon img { display: block; }
+
+/* Debug panel (visible even without DevTools) */
+details.debug-panel {
+  position: fixed;
+  left: 8px;
+  bottom: 8px;
+  right: 8px;
+  z-index: 9999;
+  background: rgba(0, 0, 0, 0.8);
+  color: #fff;
+  padding: 8px;
+  border-radius: 8px;
+  max-height: 35vh;
+  overflow: auto;
+}
+details.debug-panel .debug-panel__content {
+  font-family: ui-monospace, SFMono-Regular, Menlo, monospace;
+  font-size: 12px;
+  white-space: pre-wrap;
+}
+
+/* Hide duplicated large header on Answers editor step */
+.editor-section > .hero-title:first-child,
+.editor-section > .selector-title:first-child {
+  display: none !important;
+}
+
+
+/* Inline loader near titles: no layout shift */
+.loading-inline {
+  display: inline-block;
+  width: 1em;              /* reserve space always */
+  margin-left: 8px;
+  font-size: 18px;
+  vertical-align: middle;
+  opacity: 0;              /* hidden by default to avoid layout shift */
+  transition: opacity .15s ease;
+}
+.loading-inline.is-active { opacity: .9; }
+
+/* Make big editor cards scroll only when content exceeds viewport */
+.card.form-card { max-height: calc(100vh - 32px); overflow: auto; -webkit-overflow-scrolling: touch; min-height: 0; }
+
+/* On test pages we render the card as a full-bleed screen (tp-no-frame). Disable the generic max-height/scroll. */
+.card.form-card.tp-no-frame {
+  max-height: none !important;
+  overflow: visible !important;
+}
+
+/* Уменьшаем отступ сверху у заголовка раздела в редакторе */
+.editor-section h3 {
+  margin-top: 8px;
 }

@@ -1,0 +1,232 @@
+
+/* Базовая высота, прокруткой управляет внутренняя панель */
+.tp-screen { min-height: 100vh; }
+.tp-wrap   { min-height: 100vh; }
+
+/* Синий фон для экранов теста */
+.tp-wrap {
+  background: #5b8bb5;
+  padding: 0;
+  margin: 0;
+  border-radius: 0;
+  min-height: 100vh;
+  display: flex;
+  flex-direction: column;
+  justify-content: flex-start;
+  align-items: center;
+  overflow: auto;
+}
+
+/* Крупный заголовок на синей подложке (вне белой панели) */
+.tp-root-title {
+  color: #fff;
+  font-weight: 800;
+  font-size: 26px;
+  line-height: 1.15;
+  margin: 14px 0 10px;
+  width: min(92vw, 480px);
+}
+.tp-panel {
+  background: #ffffff;
+  border-radius: 16px;
+  padding: 0;
+  box-shadow: 0 8px 24px rgba(15,23,42,.08);
+  min-height: 0;
+  width: min(92vw, 480px);
+  min-height: calc(100vh - 86px);
+  max-height: calc(100vh - 28px);
+  margin-bottom: 28px;
+  display: flex;
+  flex-direction: column;
+  overflow: hidden;
+}
+
+/* добавляем padding только контенту под шапкой */
+.tp-panel__content {
+  padding: 18px;
+  overflow-y: auto;
+  -webkit-overflow-scrolling: touch;
+  flex: 1;
+  display: flex;
+  flex-direction: column;
+  gap: 12px;
+}
+
+.tp-header {
+  background: #5b8bb5;
+  color: #fff;
+  padding: 16px 20px;
+  margin: 0;
+  border-radius: 0;
+  font-weight: 800;
+  font-size: 26px;
+  width: 100%;
+  display: block;
+}
+
+.tp-step {
+  color: #3b82f6;
+  font-weight: 800;
+  margin: 6px 0 10px;
+  font-size: 20px;
+}
+
+.tp-question-title {
+  color: #111;
+  font-weight: 800;
+  margin: 6px 0 10px;
+  font-size: 18px;
+}
+
+.tp-radio { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+.tp-btn {
+  width: 100%;
+  border-radius: 20px;
+  margin-top: 10px;
+  color: #111 !important; /* текст на кнопке чёрным */
+}
+.tp-result-title { color: #3b82f6; font-weight: 800; text-align: center; margin: 0 0 8px; }
+.tp-result-box {
+  background: transparent;
+  border-radius: 0;
+  padding: 0;
+  min-height: 0;
+  display: block;
+  text-align: center;
+}
+.tp-close { width: 60%; margin: 12px auto 0; display: block; border-radius: 20px; }
+
+/* --- Cards Runner full-screen look --- */
+ .tp-screen {
+  background: #5b8bb5;
+  padding: 0;
+  border-radius: 0;
+  min-height: 100vh;
+}
+
+ .tp-card {
+  background: transparent;
+  border-radius: 0;
+  box-shadow: none;
+  padding: 0;
+}
+
+.tp-instruction {
+  color: #4b5563;
+  margin: 6px 0 10px;
+  text-align: center;
+  font-size: 18px;
+}
+
+.tp-grid-cards {
+  display: grid;
+  grid-template-columns: repeat(3, 1fr);
+  gap: 10px;
+  width: 100%;
+  max-width: 100%;
+  margin: 0 auto;
+  justify-items: center;
+  align-content: start;
+  justify-content: center;
+}
+
+/* Layout presets for cards count */
+.tp-grid-2 { grid-template-columns: repeat(2, 1fr); justify-items: center; }
+.tp-grid-4 { grid-template-columns: repeat(2, 1fr); }
+/* Five cards: 3 on the first row, 2 centered on the second row */
+.tp-grid-5 {
+  grid-template-columns: repeat(6, 1fr);
+}
+/* All cards take two columns */
+.tp-grid-5 > * { grid-column: span 2; justify-self: center; }
+/* Second row — centered under the first row */
+.tp-grid-5 > :nth-child(4) { grid-column: 2 / span 2; }
+.tp-grid-5 > :nth-child(5) { grid-column: 4 / span 2; }
+
+/* Card size presets to fit viewport without scroll */
+  .tp-card-img { max-width: 150px; }
+  @media (max-width: 520px) { .tp-card-img { max-width: 135px; } }
+  @media (max-width: 420px) { .tp-card-img { max-width: 120px; } }
+
+/* tune per-count */
+.tp-grid-2 .tp-card-img { max-width: 160px; }
+.tp-grid-4 .tp-card-img { max-width: 130px; }
+.tp-grid-5 .tp-card-img { max-width: 120px; height: 180px; }
+
+ .tp-card-img {
+  display: inline-block;
+  width: 100%;
+  border: none;
+  padding: 0;
+  background: transparent;
+  border-radius: 8px;
+  overflow: hidden;
+  cursor: pointer;
+}
+.tp-card-img img {
+  width: 100%;
+  height: 100%;
+  object-fit: cover;
+  display: block;
+  border-radius: 8px;
+}
+.tp-card-img:active { transform: scale(0.98); }
+
+.tp-result {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: 8px;
+}
+
+.tp-image-big {
+  width: 100%;
+  height: 360px;
+  object-fit: contain;
+  border-radius: 12px;
+  display: block;
+  margin: 0 auto;
+}
+
+.card.form-card.tp-no-frame {
+  background: #5b8bb5 !important;
+  box-shadow: none !important;
+  border: none !important;
+  border-radius: 0 !important;
+  padding: 0 !important;
+  margin: 0 !important;
+}
+
+/* убрать любые внешние паддинги вокруг карточек/экрана */
+.tp-card { padding: 0 !important; margin: 0 !important; }
+.tp-screen { padding: 0 !important; }
+.tp-wrap .tp-panel { max-width: 480px; }
+
+/* гарантируем отсутствие скругления/отступов у самой шапки */
+.tp-card > .tp-header,
+.tp-panel > .tp-header {
+  margin: 0 !important;
+  border-radius: 0 !important;
+}
+
+/* Надёжно убираем любые внешние зазоры вокруг панели */
+.tp-wrap { padding: 0 !important; margin: 0 !important; background: #5b8bb5 !important; }
+.tp-card { padding: 0 !important; margin: 0 !important; background: transparent !important; box-shadow: none !important; border: 0 !important; }
+
+
+/* Глобальный фон только когда активна страница теста (класс вешаем на <html> и <body>) */
+html.tp-blue, body.tp-blue, :root.tp-blue {
+  background: #5b8bb5 !important;
+}
+
+.question-label {
+  display: flex;
+  flex-direction: column;
+  gap: 6px;
+}
+
+.question-label__title {
+  font-weight: 600;
+  font-size: 16px;
+  margin-bottom: 4px;
+}
