@@ -10,6 +10,7 @@ import os
 import json
 import urllib.request
 from bot.config import get_settings
+git add .
 
 SUPPORTED_TYPES = {"single"}
 
