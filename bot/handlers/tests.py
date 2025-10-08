@@ -56,7 +56,7 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
             pass
 
         # Preferred: open mini‑app with start param that WebApp parses (Home.tsx → extractStartParam)
-        webapp_url = f"{base_url}/?tgWebAppStartParam=run_{slug}
+        webapp_url = f"{base_url}/?tgWebAppStartParam=run_{slug}"
         kb = InlineKeyboardMarkup(
             [[InlineKeyboardButton(text="Открыть тест", web_app=WebAppInfo(url=webapp_url))]]
         )
