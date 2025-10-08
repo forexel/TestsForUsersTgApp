@@ -3,6 +3,7 @@ from __future__ import annotations
 import io
 import uuid
 import re
+import os
 from fastapi import APIRouter, UploadFile, File, Form, HTTPException, status, Depends
 
 from api.app.core.s3 import put_bytes
@@ -17,6 +18,7 @@ except Exception:
 router = APIRouter(prefix="/media", tags=["media"])
 
 _SAFE_RE = re.compile(r"[^a-zA-Z0-9_.-]+")
+MAX_UPLOAD_MB = int(os.getenv("MEDIA_MAX_UPLOAD_MB", "25"))
 
 
 def _safe_key(filename: str, prefix: str | None = None) -> str:
@@ -42,8 +44,14 @@ async def upload_image(
     except Exception as exc:
         raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="Failed to read file") from exc
 
-    if not content or len(content) > 10 * 1024 * 1024:
-        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is empty or too large (max 10MB)")
+    max_bytes = MAX_UPLOAD_MB * 1024 * 1024
+    if not content:
+        raise HTTPException(status_code=status.HTTP_400_BAD_REQUEST, detail="File is empty")
+    if len(content) > max_bytes:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail=f"File is too large (max {MAX_UPLOAD_MB} MB)",
+        )
 
     key = _safe_key(file.filename or "image", prefix or "uploads")
     try:
@@ -56,4 +64,3 @@ async def upload_image(
         ) from exc
 
     return {"url": url, "key": key}
-
