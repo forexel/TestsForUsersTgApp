@@ -181,9 +181,9 @@
 
 .tp-image-big {
   width: 100%;
-  max-width: 320px;
+  max-width: 260px;
   height: auto;
-  aspect-ratio: 3 / 5;
+  max-height: 340px;
   object-fit: cover;
   border-radius: 20px;
   clip-path: inset(0 round 20px);

@@ -210,6 +210,7 @@ textarea {
   /* тот же аспект, что и итоговое изображение (610x1000) */
   aspect-ratio: 610 / 1000;
   width: 120px;   /* высота посчитается из aspect-ratio */
+  flex: 0 0 120px; /* не даём flex-сетке стискивать превью на узких экранах */
   height: auto;
   border-radius: 16px;
   border: 2px dashed rgba(37,99,235,0.45);
