@@ -6,7 +6,7 @@ import logging
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
 from fastapi import Request
-from fastapi.responses import JSONResponse
+from fastapi import Response
 
 import re
 from typing import Optional
@@ -102,6 +102,7 @@ def create_test_handler(
     payload: TestCreate,
     db: Session = Depends(get_db),
     init_data: TelegramInitData = Depends(get_init_data),
+    response: Response = None,  # добавили
 ):
     # --- slug normalization & auto-generation ---
     proposed = (payload.slug or "").strip()
@@ -129,11 +130,11 @@ def create_test_handler(
         db.refresh(test)
     logger.info("/tests saved id=%s slug=%s created_by=%s", getattr(test, "id", None), getattr(test, "slug", None), getattr(test, "created_by", None))
     out = TestRead.from_orm(test)
-    return JSONResponse(
-        status_code=status.HTTP_201_CREATED,
-        content=out.model_dump(mode="json"),
-        headers={"Location": f"/api/v1/tests/slug/{getattr(test, 'slug', '')}"},
-)
+    # Отдаём модель как есть, а заголовок ставим через Response — FastAPI сам сериализует корректно
+    response.status_code = status.HTTP_201_CREATED
+    response.headers["Location"] = f"/api/v1/tests/slug/{getattr(test, 'slug', '')}"
+    return out
+
 
 @router.get("/{test_id}", response_model=TestRead)
 def get_test_handler(
