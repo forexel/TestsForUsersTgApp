@@ -5,7 +5,7 @@ ENV PYTHONDONTWRITEBYTECODE=1 \
 
 WORKDIR /srv
 
-RUN apt-get update && apt-get install -y --no-install-recommends build-essential && rm -rf /var/lib/apt/lists/*
+RUN apt-get update && apt-get install -y --no-install-recommends build-essential libjpeg62-turbo-dev zlib1g-dev && rm -rf /var/lib/apt/lists/*
 
 COPY api/requirements.txt ./requirements.txt
 RUN pip install --no-cache-dir -r requirements.txt
