@@ -1,3 +1,4 @@
+from __future__ import annotations
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import CallbackQueryHandler, ContextTypes
 
