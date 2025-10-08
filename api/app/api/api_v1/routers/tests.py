@@ -18,7 +18,7 @@ from api.app.models.test_models import Test as TestModel
 
 logger = logging.getLogger("tests")
 
-router = APIRouter(prefix="/tests", tags=["tests"])
+router = APIRouter(prefix="/tests", tags=["tests"], redirect_slashes=False,)
 
 _SLUG_RE = re.compile(r"[^a-z0-9-]+")
 
@@ -69,6 +69,7 @@ def get_tests_all(
 
 
 # Endpoint to get only the tests created by the current user
+@router.get("/mine/", response_model=list[TestRead])
 @router.get("/mine", response_model=list[TestRead])
 def get_my_tests(
     db: Session = Depends(get_db),
@@ -92,6 +93,7 @@ def get_public_tests(db: Session = Depends(get_db)):
     logger.info("GET /tests/public -> %d items slugs=%s", len(out), [getattr(t, "slug", None) for t in tests])
     return out
 
+@router.post("", response_model=TestRead, status_code=status.HTTP_201_CREATED)
 @router.post("/", response_model=TestRead, status_code=status.HTTP_201_CREATED)
 def create_test_handler(
     payload: TestCreate,
