@@ -8,6 +8,7 @@ from api.app.core.config import get_settings
 def create_app() -> FastAPI:
     settings = get_settings()
     app = FastAPI(title=settings.app_name)
+    app.router.redirect_slashes = False  # disable 307 redirects for trailing slashes
     app.add_middleware(
         CORSMiddleware,
         allow_origins=["*"],  # dev: allow all; tighten for prod
