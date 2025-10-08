@@ -155,8 +155,9 @@ function CardsRunner({ test }: { test: any }) {
   const countOk = limited.length >= 2;
   const { mode, text } = useMemo(() => {
     const raw = test.description || "";
-    const m = raw.match(/^\s*\[(open|closed)\]\s*(.*)$/i);
-    if (m) return { mode: m[1].toLowerCase(), text: m[2] } as any;
+    // allow instructions to span multiple lines after the [open]/[closed] prefix
+    const m = raw.match(/^\s*\[(open|closed)\]\s*([\s\S]*)$/i);
+    if (m) return { mode: m[1].toLowerCase(), text: m[2].trim() } as any;
     return { mode: "closed", text: raw } as any;
   }, [test]);
   const current = limited.find((a: any) => String(a.id) === String(picked));
@@ -177,7 +178,7 @@ function CardsRunner({ test }: { test: any }) {
                   onClick={() => setPicked(String(a.id))}
                 >
                   <img
-                    src={mode === 'open' ? (a.image_url || backCard) : backCard}
+                    src={mode === 'open' ? (a.image_url || (a as any).imageUrl || backCard) : backCard}
                     alt="card"
                   />
                 </button>
@@ -199,7 +200,7 @@ function CardsRunner({ test }: { test: any }) {
               <div className="tp-result-title">{current.text || "Карта"}</div>
               <img
                 className="tp-image-big"
-                src={current.image_url || backCard}
+                src={current.image_url || (current as any).imageUrl || backCard}
                 alt={current.text || "card"}
               />
               <div className="tp-result-box">
