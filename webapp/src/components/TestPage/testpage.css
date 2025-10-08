@@ -168,7 +168,7 @@
   height: 100%;
   object-fit: cover;
   display: block;
-  border-radius: 8px;
+  border-radius: 14px;
 }
 .tp-card-img:active { transform: scale(0.98); }
 
@@ -183,9 +183,10 @@
   width: 100%;
   height: 360px;
   object-fit: contain;
-  border-radius: 12px;
+  border-radius: 18px;
   display: block;
   margin: 0 auto;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
 }
 
 .card.form-card.tp-no-frame {
