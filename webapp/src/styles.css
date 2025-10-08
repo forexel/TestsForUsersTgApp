@@ -209,7 +209,7 @@ textarea {
 .card-uploader {
   /* тот же аспект, что и итоговое изображение (610x1000) */
   aspect-ratio: 610 / 1000;
-  width: clamp(150px, 60vw, 220px);   /* высота посчитается из aspect-ratio */
+  width: clamp(180px, 65vw, 260px);   /* высота посчитается из aspect-ratio */
   height: auto;
   border-radius: 16px;
   border: 2px dashed rgba(37,99,235,0.45);
@@ -237,12 +237,12 @@ textarea {
 /* Fallback для браузеров без aspect-ratio */
 @supports not (aspect-ratio: 1 / 1) {
   .card-uploader {
-    height: calc(clamp(150px, 60vw, 220px) * (1000 / 610));
+    height: calc(clamp(180px, 65vw, 260px) * (1000 / 610));
   }
 }
 
 .card-uploader__plus {
-  font-size: clamp(48px, 14vw, 64px);
+  font-size: clamp(56px, 15vw, 72px);
   line-height: 1;
   color: #2563eb;
   font-weight: 600;

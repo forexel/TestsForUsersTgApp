@@ -40,6 +40,17 @@
   flex-direction: column;
   overflow: hidden;
 }
+.tp-panel.tp-panel--result {
+  background: transparent;
+  box-shadow: none;
+  border-radius: 0;
+}
+.tp-panel.tp-panel--result .tp-panel__content {
+  background: transparent;
+  padding: 0;
+  align-items: center;
+  gap: 16px;
+}
 
 /* добавляем padding только контенту под шапкой */
 .tp-panel__content {
@@ -180,15 +191,21 @@
   gap: 8px;
 }
 
-.tp-image-big {
+.tp-card-big {
+  width: 100%;
+  border-radius: 22px;
+  background: transparent;
+  display: block;
+  overflow: hidden;
+  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
+}
+.tp-card-big img {
   width: 100%;
   height: 360px;
-  object-fit: contain;
+  object-fit: cover;
+  display: block;
   border-radius: 22px;
   clip-path: inset(0 round 22px);
-  display: block;
-  margin: 0 auto;
-  box-shadow: 0 12px 32px rgba(15, 23, 42, 0.18);
 }
 
 .card.form-card.tp-no-frame {

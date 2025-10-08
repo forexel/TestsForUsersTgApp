@@ -193,25 +193,26 @@ function CardsRunner({ test }: { test: any }) {
   return (
     <div className="tp-wrap">
       <div className="tp-root-title">Результат</div>
-      <div className="tp-panel">
-        <div className="tp-panel__content tp-result">
-          {current ? (
-            <>
-              <div className="tp-result-title">{current.text || "Карта"}</div>
-              <img
-                className="tp-image-big"
-                src={current.image_url || (current as any).imageUrl || backCard}
-                alt={current.text || "card"}
-              />
-              <div className="tp-result-box">
-                <p>{current.explanation_text || ""}</p>
-              </div>
-            </>
-          ) : (
-            <div className="tp-result-box"><p className="muted">Карта не найдена</p></div>
-          )}
-        </div>
-      </div>
+          <div className="tp-panel tp-panel--result">
+            <div className="tp-panel__content tp-result">
+              {current ? (
+                <>
+                  <div className="tp-result-title">{current.text || "Карта"}</div>
+                  <div className="tp-card-big">
+                    <img
+                      src={current.image_url || (current as any).imageUrl || backCard}
+                      alt={current.text || "card"}
+                    />
+                  </div>
+                  <div className="tp-result-box">
+                    <p>{current.explanation_text || ""}</p>
+                  </div>
+                </>
+              ) : (
+                <div className="tp-result-box"><p className="muted">Карта не найдена</p></div>
+              )}
+            </div>
+          </div>
     </div>
   );
 }
