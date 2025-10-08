@@ -5,6 +5,8 @@ import logging
 
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.orm import Session
+from fastapi import Request
+from fastapi.responses import JSONResponse
 
 import re
 from typing import Optional
@@ -72,10 +74,11 @@ def get_tests_all(
 @router.get("/mine/", response_model=list[TestRead])
 @router.get("/mine", response_model=list[TestRead])
 def get_my_tests(
+    request: Request,    
     db: Session = Depends(get_db),
     init_data: TelegramInitData = Depends(get_init_data),
 ):
-    logger.info("GET /tests/mine by user=%s", getattr(init_data.user, "id", None))
+    logger.info("GET /tests/mine by user=%s ua=%s", getattr(init_data.user, "id", None), request.headers.get("user-agent", "?"))
     rows = (
         db.query(TestModel)
         .filter(getattr(TestModel, "created_by") == init_data.user.id)
@@ -125,8 +128,12 @@ def create_test_handler(
         db.commit()
         db.refresh(test)
     logger.info("/tests saved id=%s slug=%s created_by=%s", getattr(test, "id", None), getattr(test, "slug", None), getattr(test, "created_by", None))
-    return TestRead.from_orm(test)
-
+    out = TestRead.from_orm(test)
+    return JSONResponse(
+        status_code=status.HTTP_201_CREATED,
+        content=out.model_dump(mode="json"),
+        headers={"Location": f"/api/v1/tests/slug/{getattr(test, 'slug', '')}"},
+)
 
 @router.get("/{test_id}", response_model=TestRead)
 def get_test_handler(
