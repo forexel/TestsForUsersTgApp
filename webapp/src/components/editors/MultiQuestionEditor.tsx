@@ -357,7 +357,6 @@ function toApiPayload(draft: TestDraft, opts?: { includeSlug?: boolean }) {
         explanation_text: (a as any).explanationText,
       })),
     })),
-    answers: [],
     results: draft.results.map((r, i) => ({
       title: r.title && r.title.trim() ? r.title : `Результат ${i + 1}`,
       description: r.description,

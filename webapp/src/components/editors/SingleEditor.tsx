@@ -86,7 +86,6 @@ export default function SingleEditor({
           })),
         },
       ],
-      answers: [],
       results: [{ title: "Результат", description: "", min_score: null, max_score: null }],
     };
     const headers = { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } };
