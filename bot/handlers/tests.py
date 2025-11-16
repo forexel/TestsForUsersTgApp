@@ -12,7 +12,7 @@ import re
 from bot.config import get_settings
 
 SUPPORTED_TYPES = {"single"}
-RUN_SLUG_RE = re.compile(r"run_([A-Za-z0-9._\-]+)", re.IGNORECASE)
+RUN_SLUG_RE = re.compile(r"(?:run_|slug=)([A-Za-z0-9._\-]+)", re.IGNORECASE)
 
 
 def register_handlers(application):

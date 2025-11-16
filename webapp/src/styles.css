@@ -332,7 +332,20 @@ textarea {
 
 .list { display: flex; flex-direction: column; gap: 10px; }
 .list-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid rgba(15,23,42,.08); border-radius: 12px; }
-.list-link { color: #0f172a; text-decoration: none; font-weight: 600; }
+.list-link,
+.list-link-button {
+  color: #0f172a;
+  text-decoration: none;
+  font-weight: 600;
+}
+.list-link-button {
+  border: none;
+  background: transparent;
+  padding: 0;
+  font: inherit;
+  text-align: left;
+  cursor: pointer;
+}
 .list-actions { display: flex; align-items: center; gap: 8px; }
 button.icon { padding: 6px 8px; border-radius: 10px; background: #f8fafc; }
 button.icon.danger { background: #fff1f2; }

@@ -285,7 +285,11 @@ export function Home({ onCreate }: HomeProps) {
 
   const openEditor = (type: TestType, slug: string) => {
     const next = `#/editor?type=${type}&slug=${slug}`;
-    try { window.location.assign(next); } catch { window.location.hash = next; }
+    try {
+      window.location.hash = next;
+    } catch {
+      window.location.assign(next);
+    }
   };
 
   return (
@@ -301,16 +305,9 @@ export function Home({ onCreate }: HomeProps) {
             // Always use direct WebApp link
             return (
               <div key={t.slug} className="list-row">
-                <a
-                  className="list-link"
-                  href={`#/editor?type=${t.type}&slug=${t.slug}`}
-                  onClick={(evt) => {
-                    evt.preventDefault();
-                    openEditor(t.type, t.slug);
-                  }}
-                >
+                <button type="button" className="list-link-button" onClick={() => openEditor(t.type, t.slug)}>
                   {t.title}
-                </a>
+                </button>
                 <div className="list-actions">
                   <button type="button" className="icon" title="Копировать ссылку" onClick={() => onCopy(t.slug)}>
                     <img src={copyIcon} alt="copy" width={18} height={18} />
