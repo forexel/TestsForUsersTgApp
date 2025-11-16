@@ -89,10 +89,6 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
     return () => { mounted = false; };
   }, [api, slug]);
 
-  if (loading) return <section className="card"><p>Загрузка…</p></section>;
-  if (error) return <section className="card"><p className="error">{error}</p></section>;
-  if (!test) return null;
-
   const logCompletion = useCallback(() => {
     if (!slug) return;
     if (logStateRef.current === "pending" || logStateRef.current === "done") return;
@@ -104,6 +100,10 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
         warn("logCompletion fail", err?.response?.status || err?.message);
       });
   }, [api, slug]);
+
+  if (loading) return <section className="card"><p>Загрузка…</p></section>;
+  if (error) return <section className="card"><p className="error">{error}</p></section>;
+  if (!test) return null;
 
   const wrapperClass =
     `card form-card ${(test.type==='cards' || test.type==='single' || test.type==='multi') ? 'tp-no-frame' : ''}`;
