@@ -288,7 +288,7 @@ export function Home({ onCreate }: HomeProps) {
     try {
       window.location.hash = next;
     } catch {
-      window.location.assign(next);
+      try { window.location.assign(next); } catch {}
     }
   };
 
@@ -301,31 +301,54 @@ export function Home({ onCreate }: HomeProps) {
         </h2>
         {error && <p className="error">{error}</p>}
         <div className="list">
-          {items.map((t) => {
-            // Always use direct WebApp link
-            return (
-              <div key={t.slug} className="list-row">
-                <button type="button" className="list-link-button" onClick={() => openEditor(t.type, t.slug)}>
-                  {t.title}
+          {items.map((t) => (
+            <div
+              key={t.slug}
+              className="list-row list-row--interactive"
+              role="button"
+              tabIndex={0}
+              onClick={() => openEditor(t.type, t.slug)}
+              onKeyDown={(evt) => {
+                if (evt.key === "Enter" || evt.key === " ") {
+                  evt.preventDefault();
+                  openEditor(t.type, t.slug);
+                }
+              }}
+            >
+              <span className="list-link">{t.title}</span>
+              <div className="list-actions">
+                <button
+                  type="button"
+                  className="icon"
+                  title="Копировать ссылку"
+                  onClick={(evt) => {
+                    evt.stopPropagation();
+                    onCopy(t.slug);
+                  }}
+                >
+                  <img src={copyIcon} alt="copy" width={18} height={18} />
                 </button>
-                <div className="list-actions">
-                  <button type="button" className="icon" title="Копировать ссылку" onClick={() => onCopy(t.slug)}>
-                    <img src={copyIcon} alt="copy" width={18} height={18} />
-                  </button>
-                  {/* 
+                {/* 
                   {false && (
                     <button type="button" className="icon" title="Скопировать t.me ссылку" onClick={() => navigator.clipboard.writeText(`https://t.me/${BOT_USERNAME}?startapp=run_${t.slug}`)}>
                       <img src={copyIcon} alt="copy t.me" width={18} height={18} />
                     </button>
                   )}
                   */}
-                  <button type="button" className="icon danger" title="Удалить" onClick={() => onDelete(t.id)}>
-                    <img src={cancelIcon} alt="delete" width={18} height={18} />
-                  </button>
-                </div>
+                <button
+                  type="button"
+                  className="icon danger"
+                  title="Удалить"
+                  onClick={(evt) => {
+                    evt.stopPropagation();
+                    onDelete(t.id);
+                  }}
+                >
+                  <img src={cancelIcon} alt="delete" width={18} height={18} />
+                </button>
               </div>
-            );
-          })}
+            </div>
+          ))}
           {!loading && items.length === 0 && <p className="muted">Пока нет тестов</p>}
         </div>
         <div className="actions bottom">

@@ -149,18 +149,14 @@ def build_result_text(answer, test):
 
 async def detect_test_links(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
-    if not message or not (message.text or message.caption):
+    if not message:
         return
     chat = message.chat
     if chat and chat.type not in {"group", "supergroup"}:
         return
     if message.from_user and message.from_user.is_bot:
         return
-    text = message.text or message.caption or ""
-    match = RUN_SLUG_RE.search(text)
-    if not match:
-        return
-    slug = match.group(1)
+    slug = extract_slug_from_message(message)
     if not slug:
         return
     await reply_with_test_button(message, slug)
@@ -201,3 +197,33 @@ def get_webapp_base_url() -> str:
     except Exception:
         base_url = None
     return (base_url or os.getenv("BOT_WEBAPP_URL", "http://localhost:8080")).rstrip("/")
+
+
+def extract_slug_from_message(message) -> str | None:
+    candidates: list[str] = []
+    if message.text:
+        candidates.append(message.text)
+    if message.caption:
+        candidates.append(message.caption)
+
+    def collect_entities(entities):
+        if not entities:
+            return
+        for entity in entities:
+            if entity.type not in {"url", "text_link"}:
+                continue
+            try:
+                candidates.append(message.parse_entity(entity))
+            except Exception:
+                continue
+
+    collect_entities(getattr(message, "entities", None))
+    collect_entities(getattr(message, "caption_entities", None))
+
+    for text in candidates:
+        if not text:
+            continue
+        match = RUN_SLUG_RE.search(text)
+        if match and match.group(1):
+            return match.group(1)
+    return None
