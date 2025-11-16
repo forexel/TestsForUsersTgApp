@@ -228,11 +228,11 @@ export function Home({ onCreate }: HomeProps) {
   useEffect(() => {
     const onCreated = (e: Event) => {
       const detail = (e as CustomEvent).detail || {};
-      const { slug, title } = detail as { slug?: string; title?: string };
+      const { slug, title, type } = detail as { slug?: string; title?: string; type?: TestType };
       if (!slug || !title) return;
       setItems((prev) => {
         if (prev.find((t) => t.slug === slug)) return prev;
-        return [{ id: slug, title, slug }, ...prev];
+        return [{ id: slug, title, slug, type: type ?? "single" }, ...prev];
       });
     };
     const onFocusOrHash = () => { fetchTests(); };
