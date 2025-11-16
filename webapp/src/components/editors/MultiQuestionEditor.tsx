@@ -304,23 +304,33 @@ function ResultList({ draft, onChange }: { draft: TestDraft; onChange: <K extend
   const remove = (i: number) => onChange("results", results.filter((_, idx) => idx !== i).length ? results.filter((_, idx) => idx !== i) : [defaultResult()]);
   return (
     <div className="editor-section">
-      <h3>Результат</h3>
+      <h3>Результаты</h3>
       {results.map((r, idx) => (
         <div key={idx} className="editor-block">
-          <label>
-            {`Результат ${idx + 1}`}
-            <textarea
-              placeholder={`Введите результат ${idx + 1}`}
-              value={r.description ?? ""}
-              onChange={(e) =>
-                update(idx, {
-                  ...r,
-                  description: e.target.value,
-                  title: r.title || `Результат ${idx + 1}`,
-                })
-              }
-            />
-          </label>
+          <label className="label">Заголовок результата {idx + 1}</label>
+          <input
+            className="input"
+            placeholder={`Например, «Тип ${idx + 1}»`}
+            value={r.title ?? ""}
+            onChange={(e) =>
+              update(idx, {
+                ...r,
+                title: e.target.value,
+              })
+            }
+          />
+          <label className="label" style={{ marginTop: 8 }}>Описание</label>
+          <textarea
+            className="textarea"
+            placeholder={`Добавьте описание результата ${idx + 1}`}
+            value={r.description ?? ""}
+            onChange={(e) =>
+              update(idx, {
+                ...r,
+                description: e.target.value,
+              })
+            }
+          />
           {results.length > 1 && (
             <button type="button" className="secondary" onClick={() => remove(idx)}>Удалить</button>
           )}

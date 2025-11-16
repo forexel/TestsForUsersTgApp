@@ -285,11 +285,7 @@ export function Home({ onCreate }: HomeProps) {
 
   const openEditor = (type: TestType, slug: string) => {
     const next = `#/editor?type=${type}&slug=${slug}`;
-    try {
-      window.location.hash = next;
-    } catch {
-      try { window.location.assign(next); } catch {}
-    }
+    window.location.hash = next;
   };
 
   return (

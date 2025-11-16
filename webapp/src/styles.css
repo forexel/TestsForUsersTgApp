@@ -100,6 +100,11 @@ button:disabled {
   align-items: center;
   gap: 12px;
 }
+.label {
+  font-weight: 600;
+  margin: 8px 0 4px;
+  display: block;
+}
 .label-inline .label-text {
   min-width: 160px;
   font-weight: 600;

@@ -17,7 +17,7 @@ RUN_SLUG_RE = re.compile(r"(?:run_|slug=)([A-Za-z0-9._\-]+)", re.IGNORECASE)
 
 def register_handlers(application):
     application.add_handler(CallbackQueryHandler(handle_answer, pattern=r"^ans:"))
-    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, detect_test_links))
+    application.add_handler(MessageHandler((filters.ALL & ~filters.COMMAND), detect_test_links))
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
