@@ -2,6 +2,7 @@ from functools import lru_cache
 from typing import List
 
 import json
+import os
 from pydantic import BaseSettings, validator
 
 
@@ -18,6 +19,7 @@ class Settings(BaseSettings):
     s3_public_base_url: str | None = None
     admin_ids: List[int] = []
     bot_token: str = ""
+    bot_username: str | None = None
 
     class Config:
         env_file = ".env"
@@ -49,6 +51,12 @@ class Settings(BaseSettings):
             # accept comma-separated string, e.g. "123,456"
             return [int(item.strip()) for item in s.split(",") if item.strip()]
         return value
+
+    @validator("bot_username", pre=True, always=True)
+    def default_bot_username(cls, value):
+        if value:
+            return value
+        return os.getenv("VITE_BOT_USERNAME") or os.getenv("WEBAPP_BOT_USERNAME")
 
 
 @lru_cache(maxsize=1)

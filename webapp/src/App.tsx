@@ -18,7 +18,7 @@ const api = axios.create({ baseURL: (import.meta as any).env?.VITE_API_BASE_URL 
 type Route =
   | { name: "home" }
   | { name: "select" }
-  | { name: "editor"; testType: TestType }
+  | { name: "editor"; testType: TestType; slug?: string }
   | { name: "success"; slug?: string }
   | { name: "run"; slug: string }
   | { name: "result"; slug: string; answerId: string };
@@ -37,7 +37,8 @@ function parseHash(): Route {
       return { name: "select" };
     case "editor": {
       const t = (params.get("type") || "single") as TestType;
-      return { name: "editor", testType: t };
+      const slug = params.get("slug") || undefined;
+      return { name: "editor", testType: t, slug };
     }
     case "testsuccess": {
       const slug = params.get("slug") || undefined;
@@ -119,15 +120,16 @@ export default function App() {
         <SingleEditor
           api={api}
           {...(user ? { user } : {})}
+          editSlug={route.slug}
           onClose={() => pushHash("#/home")}
           onCreated={(t) => pushHash(`#/testsuccess?slug=${t.slug}`)}
         />
       )}
       {route.name === "editor" && route.testType === "multi" && (
-        <MultiQuestionEditor api={api} onClose={() => pushHash("#/home")} />
+        <MultiQuestionEditor api={api} onClose={() => pushHash("#/home")} editSlug={route.slug} />
       )}
       {route.name === "editor" && route.testType === "cards" && (
-        <CardsEditor api={api} onClose={() => pushHash("#/home")} />
+        <CardsEditor api={api} onClose={() => pushHash("#/home")} editSlug={route.slug} />
       )}
       {route.name === "success" && (
         <Testsuccess slug={route.slug} onClose={() => pushHash("#/home")} />

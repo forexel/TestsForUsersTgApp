@@ -14,7 +14,7 @@ def _dump(model):
     return model.dict()
 
 
-def create_test(db: Session, payload: TestCreate, *, created_by: int) -> Test:
+def create_test(db: Session, payload: TestCreate, *, created_by: int, created_by_username: str | None = None) -> Test:
     data = _dump(payload)
     # normalize incoming type to enum value (lowercase)
     if "type" in data:
@@ -28,7 +28,11 @@ def create_test(db: Session, payload: TestCreate, *, created_by: int) -> Test:
     results_data = data.pop("results", [])
 
     base_fields = {"slug", "title", "type", "description", "is_public"}
-    test = Test(**{k: v for k, v in data.items() if k in base_fields}, created_by=created_by)
+    test = Test(
+        **{k: v for k, v in data.items() if k in base_fields},
+        created_by=created_by,
+        created_by_username=created_by_username,
+    )
     db.add(test)
 
     for result in results_data:

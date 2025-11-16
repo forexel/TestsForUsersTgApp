@@ -7,7 +7,7 @@ const warn = (...args: any[]) => { try { console.warn(...args); __DBG.push('[war
 
 
 
-import { useEffect, useMemo, useState, useCallback } from "react";
+import { useEffect, useMemo, useState, useCallback, useRef } from "react";
 import "./testpage.css";
 import backCard from "../../cardunit.png";
 import type { AxiosInstance } from "axios";
@@ -57,6 +57,7 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
+  const logStateRef = useRef<"idle" | "pending" | "done">("idle");
 
   const q = useMemo(() => test?.questions?.[0], [test]);
   const cleanedDescription = useMemo(() => {
@@ -92,6 +93,18 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
   if (error) return <section className="card"><p className="error">{error}</p></section>;
   if (!test) return null;
 
+  const logCompletion = useCallback(() => {
+    if (!slug) return;
+    if (logStateRef.current === "pending" || logStateRef.current === "done") return;
+    logStateRef.current = "pending";
+    api.post(`/tests/slug/${encodeURIComponent(slug)}/logs`, {}, { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } })
+      .then(() => { logStateRef.current = "done"; })
+      .catch((err: any) => {
+        logStateRef.current = "idle";
+        warn("logCompletion fail", err?.response?.status || err?.message);
+      });
+  }, [api, slug]);
+
   const wrapperClass =
     `card form-card ${(test.type==='cards' || test.type==='single' || test.type==='multi') ? 'tp-no-frame' : ''}`;
   return (
@@ -122,6 +135,7 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
                 onClick={() => {
                   if (!picked) return;
                   WebApp.HapticFeedback?.impactOccurred?.("medium");
+                  logCompletion();
                   try {
                     const hash = `#/result?slug=${encodeURIComponent(slug)}&answerId=${encodeURIComponent(picked)}`;
                     (window as any).location.hash = hash;
@@ -136,10 +150,10 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
       )}
 
       {test.type === "multi" && (
-        <MultiRunner test={test} />
+        <MultiRunner test={test} onResultReady={logCompletion} />
       )}
       {test.type === "cards" && (
-        <CardsRunner test={test as any} />
+        <CardsRunner test={test as any} onReveal={logCompletion} />
       )}
       {test.type !== "single" && test.type !== "multi" && test.type !== "cards" && (
         <p className="muted">Этот тип теста пока запускается из бота. Поддержку в WebApp добавим позже.</p>
@@ -148,7 +162,7 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
   );
 }
 
-function CardsRunner({ test }: { test: any }) {
+function CardsRunner({ test, onReveal }: { test: any; onReveal?: () => void }) {
   const [picked, setPicked] = useState<string | null>(null);
   const answers = (test.answers || []).slice().sort((a: any, b: any) => (a.order_num || 0) - (b.order_num || 0));
   const limited = answers.slice(0, 6);
@@ -161,6 +175,10 @@ function CardsRunner({ test }: { test: any }) {
     return { mode: "closed", text: raw } as any;
   }, [test]);
   const current = limited.find((a: any) => String(a.id) === String(picked));
+
+  useEffect(() => {
+    if (picked) onReveal?.();
+  }, [picked, onReveal]);
 
   if (!picked) {
     return (
@@ -216,7 +234,7 @@ function CardsRunner({ test }: { test: any }) {
   );
 }
 
-function MultiRunner({ test }: { test: TestRead }) {
+function MultiRunner({ test, onResultReady }: { test: TestRead; onResultReady?: () => void }) {
   const [index, setIndex] = useState(0);
   const [selected, setSelected] = useState<Record<string, string>>({}); // qid -> answerId
   const [done, setDone] = useState(false);
@@ -272,6 +290,10 @@ function MultiRunner({ test }: { test: TestRead }) {
       return { title: "Результат", description: undefined };
     }
   };
+
+  useEffect(() => {
+    if (done) onResultReady?.();
+  }, [done, onResultReady]);
 
   if (!done && current) {
     const picked = selected[current.id] || null;

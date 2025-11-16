@@ -1,10 +1,11 @@
-import { FormEvent, useMemo, useState } from "react";
+import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { AxiosInstance } from "axios";
 import WebApp from "@twa-dev/sdk";
 
 import { AnswerDraft, ResultDraft, TestDraft } from "../../types";
+import type { TestRead } from "../../types/tests";
 
-type Props = { api: AxiosInstance; onClose: () => void };
+type Props = { api: AxiosInstance; onClose: () => void; editSlug?: string };
 
 const defaultAnswer = (order: number): AnswerDraft => ({ orderNum: order, text: "" });
 const defaultResult = (): ResultDraft => ({ title: "Результат", description: "", minScore: null, maxScore: null });
@@ -20,13 +21,18 @@ const initialDraft = (): TestDraft => ({
   results: [defaultResult()],
 });
 
-export function CardsEditor({ api, onClose }: Props) {
+export function CardsEditor({ api, onClose, editSlug }: Props) {
   const [draft, setDraft] = useState<TestDraft>(() => initialDraft());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2>(1);
   const [mode, setMode] = useState<"open" | "closed">("closed");
   const [uploadDebug, setUploadDebug] = useState<any | null>(null);
+  const [testId, setTestId] = useState<string | null>(null);
+  const [currentSlug, setCurrentSlug] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const isEdit = Boolean(editSlug);
 
   const canSubmit = useMemo(() => {
     const titleOk = draft.title.trim().length > 2;
@@ -36,9 +42,58 @@ export function CardsEditor({ api, onClose }: Props) {
       ((a as any).imageUrl && String((a as any).imageUrl).length > 0) &&
       ((a as any).explanationText !== undefined ? String((a as any).explanationText).trim().length > 0 : true)
     );
-    return titleOk && countOk && perOk;
-  }, [draft.title, draft.answers]);
+    return titleOk && countOk && perOk && !loading;
+  }, [draft.title, draft.answers, loading]);
   const updateDraft = <K extends keyof TestDraft>(key: K, value: TestDraft[K]) => setDraft((p) => ({ ...p, [key]: value }));
+
+  useEffect(() => {
+    if (!editSlug) return;
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+    api
+      .get(`/tests/slug/${encodeURIComponent(editSlug)}`, { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } })
+      .then((res) => {
+        if (cancelled) return;
+        const data = res.data as TestRead;
+        if (data.type !== "cards") {
+          setLoadError("Нельзя редактировать этот тип теста в этом редакторе");
+          return;
+        }
+        const { parsedMode, description } = parseCardsDescription(data.description);
+        setMode(parsedMode);
+        setDraft({
+          slug: data.slug,
+          title: data.title,
+          type: "cards",
+          description,
+          isPublic: data.is_public,
+          questions: [],
+          answers: mapAnswersFromApi(data),
+          results: (data.results || []).map((r) => ({
+            id: r.id,
+            title: r.title,
+            description: r.description || "",
+            minScore: r.min_score ?? null,
+            maxScore: r.max_score ?? null,
+          })),
+        });
+        setTestId(data.id);
+        setCurrentSlug(data.slug);
+        setStep(2);
+      })
+      .catch((err: any) => {
+        if (cancelled) return;
+        const message = err?.response?.data?.detail ?? err?.message ?? "Не удалось загрузить тест";
+        setLoadError(String(message));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [api, editSlug]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -46,17 +101,25 @@ export function CardsEditor({ api, onClose }: Props) {
     setSubmitting(true);
     setError(null);
     try {
-      const payload = toApiPayload(draft, mode);
-      const response = await api.post("/tests", payload, { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } });
-      let slug = String((response?.data && (response.data.slug || (response as any)?.data?.data?.slug || (response as any)?.data?.test?.slug)) || "");
-      if (!slug && (response as any)?.data?.id) {
-        try {
-          const r2 = await api.get(`/tests/${(response as any).data.id}`, { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } });
-          slug = String((r2 as any)?.data?.slug || "");
-        } catch {}
+      const payload = toApiPayload(draft, mode, { includeSlug: !isEdit });
+      const headers = { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } };
+      let slug = currentSlug || editSlug || "";
+      if (isEdit) {
+        if (!testId) throw new Error("Тест не найден");
+        const response = await api.patch(`/tests/${testId}`, payload, headers);
+        slug = String(response?.data?.slug || slug || "");
+      } else {
+        const response = await api.post("/tests", payload, headers);
+        slug = String((response?.data && (response.data.slug || (response as any)?.data?.data?.slug || (response as any)?.data?.test?.slug)) || "");
+        if (!slug && (response as any)?.data?.id) {
+          try {
+            const r2 = await api.get(`/tests/${(response as any).data.id}`, headers);
+            slug = String((r2 as any)?.data?.slug || "");
+          } catch {}
+        }
       }
       WebApp.HapticFeedback?.notificationOccurred?.("success");
-      try { window.dispatchEvent(new CustomEvent("test_created", { detail: { slug, title: draft.title, type: "cards" } })); } catch {}
+      try { window.dispatchEvent(new CustomEvent(isEdit ? "test_updated" : "test_created", { detail: { slug, title: draft.title, type: "cards" } })); } catch {}
       if (slug) {
         const next = `#/testsuccess?slug=${encodeURIComponent(slug)}`;
         try { window.location.assign(next); } catch { window.location.hash = next; }
@@ -71,6 +134,18 @@ export function CardsEditor({ api, onClose }: Props) {
   };
 
   // Step 1 — Название и вопрос (используем description как текст вопроса/подсказки)
+  if (loading) return <section className="card form-card"><p>Загрузка…</p></section>;
+  if (loadError) {
+    return (
+      <section className="card form-card">
+        <p className="error">{loadError}</p>
+        <div className="actions bottom">
+          <button className="secondary" type="button" onClick={onClose}>Закрыть</button>
+        </div>
+      </section>
+    );
+  }
+
   if (step === 1) {
     const canNext = draft.title.trim().length > 0;
     return (
@@ -118,7 +193,7 @@ export function CardsEditor({ api, onClose }: Props) {
         {error && <p className="error">{error}</p>}
         <footer className="actions bottom">
           <button type="button" className="secondary" onClick={() => setStep(1)} disabled={submitting}>Назад</button>
-          <button type="submit" disabled={!canSubmit || submitting}>{submitting ? "Сохранение..." : "Создать"}</button>
+          <button type="submit" disabled={!canSubmit || submitting}>{submitting ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}</button>
         </footer>
       </form>
       {uploadDebug && (
@@ -254,7 +329,31 @@ function ImageUploader({
   );
 }
 
-function toApiPayload(draft: TestDraft, mode: "open" | "closed") {
+function parseCardsDescription(raw: string | null | undefined): { parsedMode: "open" | "closed"; description: string } {
+  const text = raw || "";
+  const match = text.match(/^\s*\[(open|closed)\]\s*([\s\S]*)$/i);
+  if (match) {
+    return { parsedMode: match[1].toLowerCase() === "open" ? "open" : "closed", description: (match[2] || "").trim() };
+  }
+  return { parsedMode: "closed", description: text };
+}
+
+function mapAnswersFromApi(test: TestRead): AnswerDraft[] {
+  return (test.answers || [])
+    .slice()
+    .sort((a, b) => (a.order_num || 0) - (b.order_num || 0))
+    .map((answer, idx) => ({
+      id: answer.id,
+      orderNum: answer.order_num ?? idx + 1,
+      text: answer.text || "",
+      explanationText: answer.explanation_text || "",
+      explanationTitle: answer.explanation_title || undefined,
+      imageUrl: answer.image_url || undefined,
+      resultId: answer.result_id || undefined,
+    }));
+}
+
+function toApiPayload(draft: TestDraft, mode: "open" | "closed", opts?: { includeSlug?: boolean }) {
   const base: any = {
     title: draft.title,
     type: "cards",
@@ -272,7 +371,7 @@ function toApiPayload(draft: TestDraft, mode: "open" | "closed") {
     })),
     results: draft.results.map((r) => ({ title: r.title, description: r.description, min_score: r.minScore, max_score: r.maxScore })),
   };
-  if (draft.slug && draft.slug.trim()) base.slug = draft.slug.trim();
+  if (opts?.includeSlug && draft.slug && draft.slug.trim()) base.slug = draft.slug.trim();
   return base;
 }
 

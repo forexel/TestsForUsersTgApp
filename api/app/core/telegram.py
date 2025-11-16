@@ -25,9 +25,21 @@ class TelegramUser:
 
 
 @dataclass
+class TelegramChat:
+    id: int | None = None
+    type: str | None = None
+    title: str | None = None
+    username: str | None = None
+
+
+@dataclass
 class TelegramInitData:
     query_id: str | None
     user: TelegramUser
+    chat: TelegramChat | None
+    chat_type: str | None
+    chat_instance: str | None
+    start_param: str | None
     auth_date: datetime
     raw: str
 
@@ -91,5 +103,41 @@ def parse_init_data(init_data: str) -> TelegramInitData:
         language_code=user_data.get("language_code"),
     )
 
-    logger.info("parse_init_data: ok user_id=%s auth_ts=%s", user.id, int(auth_dt.timestamp()))
-    return TelegramInitData(query_id=data.get("query_id"), user=user, auth_date=auth_dt, raw=init_data)
+    chat_obj: TelegramChat | None = None
+    chat_raw = data.get("chat")
+    if chat_raw:
+        try:
+            chat_data = json.loads(chat_raw)
+            chat_obj = TelegramChat(
+                id=int(chat_data.get("id")) if chat_data.get("id") is not None else None,
+                type=chat_data.get("type"),
+                title=chat_data.get("title"),
+                username=chat_data.get("username"),
+            )
+        except Exception as exc:
+            logger.warning("parse_init_data: malformed chat json: %s err=%s", chat_raw[:80], exc)
+            chat_obj = None
+    elif data.get("chat_type"):
+        chat_obj = TelegramChat(id=None, type=data.get("chat_type"))
+
+    start_param = data.get("start_param")
+    chat_type = data.get("chat_type") or getattr(chat_obj, "type", None)
+    chat_instance = data.get("chat_instance")
+
+    logger.info(
+        "parse_init_data: ok user_id=%s auth_ts=%s chat_type=%s start_param=%s",
+        user.id,
+        int(auth_dt.timestamp()),
+        chat_type,
+        start_param,
+    )
+    return TelegramInitData(
+        query_id=data.get("query_id"),
+        user=user,
+        chat=chat_obj,
+        chat_type=chat_type,
+        chat_instance=chat_instance,
+        start_param=start_param,
+        auth_date=auth_dt,
+        raw=init_data,
+    )

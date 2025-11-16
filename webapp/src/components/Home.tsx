@@ -5,6 +5,7 @@ import { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import WebApp from "@twa-dev/sdk";
 import TestPage from "./TestPage/Index";
+import { TestType } from "../types";
 
 const __DBG: string[] = (typeof window !== 'undefined' && (window as any).__DBG) || [];
 if (typeof window !== 'undefined') (window as any).__DBG = __DBG;
@@ -115,6 +116,7 @@ type TestItem = {
   id: string;
   title: string;
   slug: string;
+  type: TestType;
   created_at?: string | null;
 };
 
@@ -196,6 +198,7 @@ export function Home({ onCreate }: HomeProps) {
             id: String(t.id),
             title: String(t.title),
             slug: String(t.slug),
+            type: (t.type || "single") as TestType,
             created_at: (t.created_at || t.createdAt || null) as string | null,
           }))
         : [];
@@ -291,10 +294,10 @@ export function Home({ onCreate }: HomeProps) {
         <div className="list">
           {items.map((t) => {
             // Always use direct WebApp link
-            const link = WEBAPP_ORIGIN ? `${WEBAPP_ORIGIN}/#/run?slug=${t.slug}` : `#/run?slug=${t.slug}`;
+            const link = `#/editor?type=${t.type}&slug=${t.slug}`;
             return (
               <div key={t.slug} className="list-row">
-                <a className="list-link" href={link} target="_blank" rel="noreferrer">
+                <a className="list-link" href={link}>
                   {t.title}
                 </a>
                 <div className="list-actions">

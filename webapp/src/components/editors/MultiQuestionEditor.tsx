@@ -3,8 +3,9 @@ import type { AxiosInstance } from "axios";
 import WebApp from "@twa-dev/sdk";
 
 import { AnswerDraft, QuestionDraft, ResultDraft, TestDraft, ScoringMode } from "../../types";
+import type { TestRead } from "../../types/tests";
 
-type Props = { api: AxiosInstance; onClose: () => void };
+type Props = { api: AxiosInstance; onClose: () => void; editSlug?: string };
 
 const STORAGE_KEY = "multi_draft_v1";
 
@@ -28,33 +29,75 @@ const initialDraft = (): TestDraft => ({
   results: [defaultResult()],
 });
 
-export function MultiQuestionEditor({ api, onClose }: Props) {
-  const [draft, setDraft] = useState<TestDraft>(() => {
-    try {
-      const raw = typeof window !== 'undefined' ? sessionStorage.getItem(STORAGE_KEY) : null;
-      if (raw) return JSON.parse(raw) as TestDraft;
-    } catch {}
-    return initialDraft();
-  });
+export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
+  const [draft, setDraft] = useState<TestDraft>(() => initialDraft());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [testId, setTestId] = useState<string | null>(null);
+  const [currentSlug, setCurrentSlug] = useState<string | null>(null);
+  const [loading, setLoading] = useState(false);
+  const [loadError, setLoadError] = useState<string | null>(null);
+  const isEdit = Boolean(editSlug);
 
   const canSubmit = useMemo(() => {
     const titleOk = draft.title.trim().length > 2;
     const hasQuestions = draft.questions.length > 0;
     const eachQ = draft.questions.every(q => q.text.trim().length > 0 && q.answers.length >= 2 && q.answers.every(a => (a.text ?? '').trim().length > 0));
-    return titleOk && hasQuestions && eachQ;
-  }, [draft.title, draft.questions]);
+    return titleOk && hasQuestions && eachQ && !loading;
+  }, [draft.title, draft.questions, loading]);
   const updateDraft = <K extends keyof TestDraft>(key: K, value: TestDraft[K]) => setDraft((p) => ({ ...p, [key]: value }));
 
   useEffect(() => {
+    if (isEdit) return;
+    try {
+      const raw = typeof window !== 'undefined' ? sessionStorage.getItem(STORAGE_KEY) : null;
+      if (raw) {
+        setDraft(JSON.parse(raw) as TestDraft);
+      }
+    } catch {}
+  }, [isEdit]);
+
+  useEffect(() => {
+    if (isEdit) return;
     try {
       if (typeof window !== 'undefined') {
         sessionStorage.setItem(STORAGE_KEY, JSON.stringify(draft));
       }
     } catch {}
-  }, [draft]);
+  }, [draft, isEdit]);
+
+  useEffect(() => {
+    if (!editSlug) return;
+    let cancelled = false;
+    setLoading(true);
+    setLoadError(null);
+    api
+      .get(`/tests/slug/${encodeURIComponent(editSlug)}`, { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } })
+      .then((res) => {
+        if (cancelled) return;
+        const data = res.data as TestRead;
+        if (data.type !== "multi") {
+          setLoadError("Нельзя редактировать этот тип теста в этом редакторе");
+          return;
+        }
+        setDraft(fromApiTest(data));
+        setTestId(data.id);
+        setCurrentSlug(data.slug);
+        setStep(2);
+      })
+      .catch((err: any) => {
+        if (cancelled) return;
+        const message = err?.response?.data?.detail ?? err?.message ?? "Не удалось загрузить тест";
+        setLoadError(String(message));
+      })
+      .finally(() => {
+        if (!cancelled) setLoading(false);
+      });
+    return () => {
+      cancelled = true;
+    };
+  }, [api, editSlug]);
 
   const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
     event.preventDefault();
@@ -62,18 +105,28 @@ export function MultiQuestionEditor({ api, onClose }: Props) {
     setSubmitting(true);
     setError(null);
     try {
-      const payload = toApiPayload(draft);
-      const response = await api.post("/tests", payload, { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } });
-      let slug = String((response?.data && (response.data.slug || (response as any)?.data?.data?.slug || (response as any)?.data?.test?.slug)) || "");
-      if (!slug && (response as any)?.data?.id) {
-        try {
-          const r2 = await api.get(`/tests/${(response as any).data.id}`, { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } });
-          slug = String((r2 as any)?.data?.slug || "");
-        } catch {}
+      const payload = toApiPayload(draft, { includeSlug: !isEdit });
+      const headers = { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } };
+      let slug = currentSlug || editSlug || "";
+      if (isEdit) {
+        if (!testId) throw new Error("Тест не найден");
+        const response = await api.patch(`/tests/${testId}`, payload, headers);
+        slug = String(response?.data?.slug || slug || "");
+      } else {
+        const response = await api.post("/tests", payload, headers);
+        slug = String((response?.data && (response.data.slug || (response as any)?.data?.data?.slug || (response as any)?.data?.test?.slug)) || "");
+        if (!slug && (response as any)?.data?.id) {
+          try {
+            const r2 = await api.get(`/tests/${(response as any).data.id}`, headers);
+            slug = String((r2 as any)?.data?.slug || "");
+          } catch {}
+        }
       }
       WebApp.HapticFeedback?.notificationOccurred?.("success");
-      try { if (typeof window !== 'undefined') sessionStorage.removeItem(STORAGE_KEY); } catch {}
-      try { window.dispatchEvent(new CustomEvent("test_created", { detail: { slug, title: draft.title, type: "multi" } })); } catch {}
+      if (!isEdit) {
+        try { if (typeof window !== 'undefined') sessionStorage.removeItem(STORAGE_KEY); } catch {}
+      }
+      try { window.dispatchEvent(new CustomEvent(isEdit ? "test_updated" : "test_created", { detail: { slug, title: draft.title, type: "multi" } })); } catch {}
       if (slug) {
         const next = `#/testsuccess?slug=${encodeURIComponent(slug)}`;
         try { window.location.assign(next); } catch { window.location.hash = next; }
@@ -86,6 +139,18 @@ export function MultiQuestionEditor({ api, onClose }: Props) {
       setError(String(message));
     } finally { setSubmitting(false); }
   };
+
+  if (loading) return <section className="card form-card"><p>Загрузка…</p></section>;
+  if (loadError) {
+    return (
+      <section className="card form-card">
+        <p className="error">{loadError}</p>
+        <div className="actions bottom">
+          <button className="secondary" type="button" onClick={onClose}>Закрыть</button>
+        </div>
+      </section>
+    );
+  }
 
   // Intro step: title + scoring choice
   if (step === 1) {
@@ -148,7 +213,7 @@ export function MultiQuestionEditor({ api, onClose }: Props) {
           {error && <p className="error">{error}</p>}
           <footer className="actions bottom">
             <button type="button" className="secondary" onClick={() => setStep(2)} disabled={submitting}>Назад</button>
-            <button type="submit" disabled={!canSubmit || submitting}>{submitting ? "Сохранение..." : "Создать"}</button>
+            <button type="submit" disabled={!canSubmit || submitting}>{submitting ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}</button>
           </footer>
         </form>
       )}
@@ -266,7 +331,7 @@ function ResultList({ draft, onChange }: { draft: TestDraft; onChange: <K extend
   );
 }
 
-function toApiPayload(draft: TestDraft) {
+function toApiPayload(draft: TestDraft, opts?: { includeSlug?: boolean }) {
   const base: any = {
     title: draft.title,
     type: "multi",
@@ -324,8 +389,43 @@ function toApiPayload(draft: TestDraft) {
       return out;
     });
   }
-  if (draft.slug && draft.slug.trim()) base.slug = draft.slug.trim();
+  if (opts?.includeSlug && draft.slug && draft.slug.trim()) base.slug = draft.slug.trim();
   return base;
+}
+
+function fromApiTest(test: TestRead): TestDraft {
+  const questions = (test.questions || []).map((question) => ({
+    id: question.id,
+    orderNum: question.order_num,
+    text: question.text,
+    answers: (question.answers || []).map((answer, idx) => ({
+      id: answer.id,
+      orderNum: answer.order_num ?? idx + 1,
+      text: answer.text || "",
+      explanationTitle: answer.explanation_title || undefined,
+      explanationText: answer.explanation_text || undefined,
+    })),
+  }));
+  const scoringMode: ScoringMode =
+    (test.results || []).some((r) => (r.min_score ?? null) !== null || (r.max_score ?? null) !== null) ? "points" : "majority";
+  return {
+    id: test.id,
+    slug: test.slug,
+    title: test.title,
+    type: "multi",
+    description: test.description || "",
+    isPublic: test.is_public,
+    scoringMode,
+    questions,
+    answers: [],
+    results: (test.results || []).map((res) => ({
+      id: res.id,
+      title: res.title,
+      description: res.description || "",
+      minScore: res.min_score ?? null,
+      maxScore: res.max_score ?? null,
+    })),
+  };
 }
 
 export default MultiQuestionEditor;

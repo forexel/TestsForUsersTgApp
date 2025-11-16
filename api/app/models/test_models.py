@@ -35,6 +35,7 @@ class Test(Base):
     description: Mapped[str | None] = mapped_column(Text())
     is_public: Mapped[bool] = mapped_column(Boolean(), default=False, nullable=False)
     created_by: Mapped[int] = mapped_column(BigInteger(), nullable=False)
+    created_by_username: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )
@@ -128,3 +129,22 @@ class UserSession(Base):
 
     test: Mapped[Test] = relationship("Test")
     result: Mapped[Result | None] = relationship("Result")
+
+
+class TestRunLog(Base):
+    __tablename__ = "test_run_logs"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    test_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("tests.id", ondelete="SET NULL"))
+    test_slug: Mapped[str] = mapped_column(String(128), nullable=False)
+    link: Mapped[str] = mapped_column(Text(), nullable=False)
+    user_id: Mapped[int] = mapped_column(BigInteger(), nullable=False)
+    user_username: Mapped[str | None] = mapped_column(String(255))
+    source_chat_id: Mapped[int] = mapped_column(BigInteger(), nullable=False, default=0)
+    source_chat_type: Mapped[str | None] = mapped_column(String(32))
+    test_owner_username: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    test: Mapped[Test | None] = relationship("Test")

@@ -96,6 +96,7 @@ class TestRead(TestBase):
     id: uuid.UUID
     slug: str
     created_by: int
+    created_by_username: str | None = None
     created_at: datetime
     questions: list[QuestionRead]
     answers: list[AnswerRead]

@@ -22,6 +22,7 @@ services:
       # Опционально: если API читает BOT_* из окружения
       BOT_TOKEN: ${BOT_BOT_TOKEN:-}
       ADMIN_IDS: ${BOT_ADMIN_IDS:-}
+      BOT_USERNAME: ${VITE_BOT_USERNAME:-}
     # миграции могут стартовать параллельно; API сам будет ретраить коннект к БД
     networks: [apps-net]
     restart: unless-stopped

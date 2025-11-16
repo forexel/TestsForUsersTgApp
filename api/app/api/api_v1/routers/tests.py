@@ -11,12 +11,14 @@ from fastapi import Response
 import re
 from typing import Optional
 
+from api.app.core.config import get_settings
 from api.app.core.telegram import TelegramInitData
 from api.app.crud.tests import create_test, delete_test, get_test_by_id, get_test_by_slug, list_tests, update_test
 from api.app.db.session import get_db
 from api.app.dependencies.auth import get_current_admin, get_init_data
 from api.app.schemas import SlugResponse, TestCreate, TestRead, TestUpdate
 from api.app.models.test_models import Test as TestModel
+from api.app.models.test_models import TestRunLog
 
 logger = logging.getLogger("tests")
 
@@ -49,6 +51,41 @@ def _ensure_unique_slug(db: Session, base: str) -> str:
         return candidate
     # extreme fallback
     return f"{base}-{uuid.uuid4().hex[:8]}"
+
+
+def _is_admin(user_id: int | None) -> bool:
+    if user_id is None:
+        return False
+    settings = get_settings()
+    return user_id in settings.admin_ids
+
+
+def _ensure_owner_or_admin(test: TestModel, init_data: TelegramInitData):
+    if getattr(test, "created_by", None) == init_data.user.id:
+        return
+    if _is_admin(init_data.user.id):
+        return
+    raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+
+
+def _build_share_link(slug: str) -> str:
+    settings = get_settings()
+    username = settings.bot_username
+    if username:
+        return f"https://t.me/{username}?start=run_{slug}"
+    return f"run_{slug}"
+
+
+def _extract_source(init_data: TelegramInitData) -> tuple[int, str | None]:
+    chat = getattr(init_data, "chat", None)
+    chat_type = getattr(chat, "type", None) or getattr(init_data, "chat_type", None)
+    chat_id = getattr(chat, "id", None)
+    if chat_type in {"group", "supergroup", "channel"} and chat_id is not None:
+        try:
+            return int(chat_id), chat_type
+        except (TypeError, ValueError):
+            return 0, chat_type
+    return 0, chat_type
 
 
 @router.get("/", response_model=list[TestRead])
@@ -118,13 +155,20 @@ def create_test_handler(
         payload.slug = proposed  # type: ignore[attr-defined]
     except Exception:
         pass
-    test = create_test(db, payload, created_by=init_data.user.id)
+    test = create_test(
+        db,
+        payload,
+        created_by=init_data.user.id,
+        created_by_username=getattr(init_data.user, "username", None),
+    )
     db.commit()
     db.refresh(test)
     logger.info("POST /tests created id=%s slug=%s by=%s", getattr(test, "id", None), getattr(test, "slug", None), getattr(init_data.user, "id", None))
     # safety: если CRUD внезапно не записал created_by — досохраним
     if getattr(test, "created_by", None) is None:
         setattr(test, "created_by", init_data.user.id)
+    if getattr(test, "created_by_username", None) is None and getattr(init_data.user, "username", None):
+        setattr(test, "created_by_username", init_data.user.username)
         db.add(test)
         db.commit()
         db.refresh(test)
@@ -140,11 +184,12 @@ def create_test_handler(
 def get_test_handler(
     test_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _: TelegramInitData = Depends(get_current_admin),
+    init_data: TelegramInitData = Depends(get_init_data),
 ):
     test = get_test_by_id(db, test_id)
     if not test:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test not found")
+    _ensure_owner_or_admin(test, init_data)
     return TestRead.from_orm(test)
 
 
@@ -153,11 +198,12 @@ def update_test_handler(
     test_id: uuid.UUID,
     payload: TestUpdate,
     db: Session = Depends(get_db),
-    _: TelegramInitData = Depends(get_current_admin),
+    init_data: TelegramInitData = Depends(get_init_data),
 ):
     test = get_test_by_id(db, test_id)
     if not test:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test not found")
+    _ensure_owner_or_admin(test, init_data)
     updated = update_test(db, test, payload)
     db.commit()
     db.refresh(updated)
@@ -168,11 +214,12 @@ def update_test_handler(
 def delete_test_handler(
     test_id: uuid.UUID,
     db: Session = Depends(get_db),
-    _: TelegramInitData = Depends(get_current_admin),
+    init_data: TelegramInitData = Depends(get_init_data),
 ):
     test = get_test_by_id(db, test_id)
     if not test:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test not found")
+    _ensure_owner_or_admin(test, init_data)
     delete_test(db, test)
     db.commit()
 
@@ -181,11 +228,12 @@ def delete_test_handler(
 def get_test_by_slug_handler(
     slug: str,
     db: Session = Depends(get_db),
-    _: TelegramInitData = Depends(get_current_admin),
+    init_data: TelegramInitData = Depends(get_init_data),
 ):
     test = get_test_by_slug(db, slug)
     if not test:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test not found")
+    _ensure_owner_or_admin(test, init_data)
     logger.info("GET /tests/slug/%s -> found id=%s", slug, getattr(test, "id", None))
     return TestRead.from_orm(test)
 
@@ -197,6 +245,39 @@ def get_public_test(slug: str, db: Session = Depends(get_db)):
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Public test not found")
     logger.info("GET /tests/slug/%s/public -> found id=%s", slug, getattr(test, "id", None))
     return TestRead.from_orm(test)
+
+
+@router.post("/slug/{slug}/logs", status_code=status.HTTP_201_CREATED)
+def log_test_completion(
+    slug: str,
+    db: Session = Depends(get_db),
+    init_data: TelegramInitData = Depends(get_init_data),
+):
+    test = get_test_by_slug(db, slug)
+    if not test:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test not found")
+    source_id, source_type = _extract_source(init_data)
+    link = _build_share_link(slug)
+    log_entry = TestRunLog(
+        test=test,
+        test_id=getattr(test, "id", None),
+        test_slug=slug,
+        link=link,
+        user_id=init_data.user.id,
+        user_username=getattr(init_data.user, "username", None),
+        source_chat_id=source_id,
+        source_chat_type=source_type,
+        test_owner_username=getattr(test, "created_by_username", None),
+    )
+    db.add(log_entry)
+    db.commit()
+    logger.info(
+        "POST /tests/slug/%s/logs user=%s source=%s",
+        slug,
+        getattr(init_data.user, "id", None),
+        source_id,
+    )
+    return {"status": "ok"}
 
 
 @router.post("/slug/check", response_model=SlugResponse)
