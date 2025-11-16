@@ -216,11 +216,13 @@ function CardsRunner({ test, onReveal }: { test: any; onReveal?: () => void }) {
           {current ? (
             <>
               <div className="tp-result-title">{current.text || "Карта"}</div>
-              <img
-                className="tp-image-big"
-                src={current.image_url || (current as any).imageUrl || backCard}
-                alt={current.text || "card"}
-              />
+              <div className="tp-image-frame">
+                <img
+                  className="tp-image-big"
+                  src={current.image_url || (current as any).imageUrl || backCard}
+                  alt={current.text || "card"}
+                />
+              </div>
               <div className="tp-result-box">
                 <p>{current.explanation_text || ""}</p>
               </div>

@@ -332,9 +332,18 @@ textarea {
 
 .list { display: flex; flex-direction: column; gap: 10px; }
 .list-row { display: flex; align-items: center; justify-content: space-between; gap: 10px; padding: 10px 12px; border: 1px solid rgba(15,23,42,.08); border-radius: 12px; }
-.list-row--interactive { cursor: pointer; }
-.list-row--interactive:active { background: rgba(37, 99, 235, 0.08); }
-.list-link { color: #0f172a; text-decoration: none; font-weight: 600; }
+.list-link-button {
+  flex: 1 1 auto;
+  border: none;
+  background: transparent;
+  color: #0f172a;
+  font-weight: 600;
+  font-size: 16px;
+  text-align: left;
+  padding: 0;
+  cursor: pointer;
+}
+.list-link-button:active { color: #2563eb; }
 .list-actions { display: flex; align-items: center; gap: 8px; }
 button.icon { padding: 6px 8px; border-radius: 10px; background: #f8fafc; }
 button.icon.danger { background: #fff1f2; }

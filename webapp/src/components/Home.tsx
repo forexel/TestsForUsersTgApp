@@ -302,20 +302,10 @@ export function Home({ onCreate }: HomeProps) {
         {error && <p className="error">{error}</p>}
         <div className="list">
           {items.map((t) => (
-            <div
-              key={t.slug}
-              className="list-row list-row--interactive"
-              role="button"
-              tabIndex={0}
-              onClick={() => openEditor(t.type, t.slug)}
-              onKeyDown={(evt) => {
-                if (evt.key === "Enter" || evt.key === " ") {
-                  evt.preventDefault();
-                  openEditor(t.type, t.slug);
-                }
-              }}
-            >
-              <span className="list-link">{t.title}</span>
+            <div key={t.slug} className="list-row">
+              <button type="button" className="list-link-button" onClick={() => openEditor(t.type, t.slug)}>
+                {t.title}
+              </button>
               <div className="list-actions">
                 <button
                   type="button"
