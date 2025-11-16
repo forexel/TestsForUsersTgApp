@@ -13,10 +13,6 @@ async def admin_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if user is None or message is None:
         return
 
-    if user.id not in settings.admin_ids:
-        await message.reply_text("У вас нет доступа к админке.")
-        return
-
     url = str(settings.webapp_url)
     # cache buster to avoid Telegram WebView caching old index.html
     url_with_cb = url + ("&" if "?" in url else "?") + f"v={int(time.time())}"
