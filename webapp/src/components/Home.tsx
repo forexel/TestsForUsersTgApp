@@ -283,6 +283,11 @@ export function Home({ onCreate }: HomeProps) {
     }
   }
 
+  const openEditor = (type: TestType, slug: string) => {
+    const next = `#/editor?type=${type}&slug=${slug}`;
+    try { window.location.assign(next); } catch { window.location.hash = next; }
+  };
+
   return (
     <>
       <section className="card form-card">
@@ -294,10 +299,16 @@ export function Home({ onCreate }: HomeProps) {
         <div className="list">
           {items.map((t) => {
             // Always use direct WebApp link
-            const link = `#/editor?type=${t.type}&slug=${t.slug}`;
             return (
               <div key={t.slug} className="list-row">
-                <a className="list-link" href={link}>
+                <a
+                  className="list-link"
+                  href={`#/editor?type=${t.type}&slug=${t.slug}`}
+                  onClick={(evt) => {
+                    evt.preventDefault();
+                    openEditor(t.type, t.slug);
+                  }}
+                >
                   {t.title}
                 </a>
                 <div className="list-actions">

@@ -1,6 +1,6 @@
 from __future__ import annotations
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
-from telegram.ext import CallbackQueryHandler, ContextTypes
+from telegram.ext import CallbackQueryHandler, ContextTypes, MessageHandler, filters
 
 from bot.services.api_client import ApiClient
 from bot.services.session_store import session_store
@@ -8,13 +8,16 @@ from bot.services.session_store import session_store
 import os
 import json
 import urllib.request
+import re
 from bot.config import get_settings
 
 SUPPORTED_TYPES = {"single"}
+RUN_SLUG_RE = re.compile(r"run_([A-Za-z0-9._\-]+)", re.IGNORECASE)
 
 
 def register_handlers(application):
     application.add_handler(CallbackQueryHandler(handle_answer, pattern=r"^ans:"))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, detect_test_links))
 
 
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -32,42 +35,13 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     except Exception:
         slug = None
 
-    # Resolve WebApp base URL
-    try:
-        settings = get_settings()
-        base_url = getattr(settings, "webapp_url", None)
-    except Exception:
-        base_url = None
-    base_url = (base_url or os.getenv("BOT_WEBAPP_URL", "http://localhost:8080")).rstrip("/")
-
     if slug:
-        # Try to get test title from API (public endpoint); fall back to slug
-        title = slug
-        try:
-            api_base = os.getenv("BOT_API_BASE_URL") or getattr(get_settings(), "api_base_url", "")
-            api_base = str(api_base).rstrip("/")
-            url = f"{api_base}/tests/slug/{slug}/public"
-            with urllib.request.urlopen(url, timeout=5) as resp:
-                if resp.status == 200 and "application/json" in (resp.headers.get("Content-Type") or ""):
-                    data = json.loads(resp.read().decode("utf-8"))
-                    if isinstance(data, dict) and data.get("title"):
-                        title = str(data["title"])
-        except Exception:
-            pass
-
-        # Preferred: open mini‑app with start param that WebApp parses (Home.tsx → extractStartParam)
-        webapp_url = f"{base_url}/?tgWebAppStartParam=run_{slug}"
-        kb = InlineKeyboardMarkup(
-            [[InlineKeyboardButton(text="Открыть тест", web_app=WebAppInfo(url=webapp_url))]]
-        )
-        await message.reply_text(
-            f'тест "{title}" ', reply_markup=kb
-        )
+        await reply_with_test_button(message, slug)
         return
 
     # No slug provided → offer to open app root
     kb = InlineKeyboardMarkup(
-        [[InlineKeyboardButton(text="Открыть мини‑приложение", web_app=WebAppInfo(url=f"{base_url}"))]]
+        [[InlineKeyboardButton(text="Открыть мини‑приложение", web_app=WebAppInfo(url=f"{get_webapp_base_url()}"))]]
     )
     await message.reply_text(
         "Привет! Отправьте ссылку вида t.me/<bot>?start=run_<slug> чтобы пройти тест,\nили откройте мини‑приложение:",
@@ -171,3 +145,59 @@ def build_result_text(answer, test):
     if answer.get("text"):
         return f"Вы выбрали: {answer['text']}"
     return "Спасибо за участие в тесте!"
+
+
+async def detect_test_links(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message = update.effective_message
+    if not message or not (message.text or message.caption):
+        return
+    chat = message.chat
+    if chat and chat.type not in {"group", "supergroup"}:
+        return
+    if message.from_user and message.from_user.is_bot:
+        return
+    text = message.text or message.caption or ""
+    match = RUN_SLUG_RE.search(text)
+    if not match:
+        return
+    slug = match.group(1)
+    if not slug:
+        return
+    await reply_with_test_button(message, slug)
+
+
+async def reply_with_test_button(message, slug: str) -> None:
+    base_url = get_webapp_base_url()
+    title = await fetch_test_title(slug)
+    webapp_url = f"{base_url}/?tgWebAppStartParam=run_{slug}"
+    kb = InlineKeyboardMarkup(
+        [[InlineKeyboardButton(text="Открыть тест", web_app=WebAppInfo(url=webapp_url))]]
+    )
+    await message.reply_text(
+        f'тест "{title}" ', reply_markup=kb
+    )
+
+
+async def fetch_test_title(slug: str) -> str:
+    title = slug
+    try:
+        api_base = os.getenv("BOT_API_BASE_URL") or getattr(get_settings(), "api_base_url", "")
+        api_base = str(api_base).rstrip("/")
+        url = f"{api_base}/tests/slug/{slug}/public"
+        with urllib.request.urlopen(url, timeout=5) as resp:
+            if resp.status == 200 and "application/json" in (resp.headers.get("Content-Type") or ""):
+                data = json.loads(resp.read().decode("utf-8"))
+                if isinstance(data, dict) and data.get("title"):
+                    title = str(data["title"])
+    except Exception:
+        pass
+    return title
+
+
+def get_webapp_base_url() -> str:
+    try:
+        settings = get_settings()
+        base_url = getattr(settings, "webapp_url", None)
+    except Exception:
+        base_url = None
+    return (base_url or os.getenv("BOT_WEBAPP_URL", "http://localhost:8080")).rstrip("/")
