@@ -24,6 +24,12 @@ def parse_chat_target(raw: str) -> Tuple[str | int, int | None]:
     return raw, None
 
 
+def clean_caption(text: str) -> str:
+    if not text:
+        return ""
+    return " ".join(part for part in text.split() if not part.startswith("http"))
+
+
 async def publish_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     message = update.effective_message
     if not message:
@@ -60,7 +66,7 @@ async def publish_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     start_param = f"run_test-{slug}"
     if src_chat_id is not None:
         start_param = f"{start_param}__src_{src_chat_id}"
-    deep_link = f"https://t.me/{bot_username}?startapp={start_param}"
+    deep_link = f"https://t.me/{bot_username}/quiz?startapp={start_param}"
 
     title = slug
     api = ApiClient()
@@ -76,7 +82,7 @@ async def publish_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
         except Exception:
             pass
 
-    caption = caption_override or f"Тест: {title}"
+    caption = clean_caption(caption_override or f"Тест: {title}")
     photo = settings.default_publish_photo_file_id
     markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", url=deep_link)]])
 
@@ -92,6 +98,7 @@ async def publish_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
             chat_id=target_chat,
             text=caption.strip(),
             reply_markup=markup,
+            disable_web_page_preview=True,
         )
 
     await message.reply_text("Пост опубликован.")

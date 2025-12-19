@@ -407,6 +407,12 @@ async def publish_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE
     await message.reply_text("Пришлите картинку для поста или нажмите «Далее без картинки».", reply_markup=kb)
 
 
+def _clean_caption(text: str) -> str:
+    if not text:
+        return ""
+    return " ".join(part for part in text.split() if not part.startswith("http"))
+
+
 async def _publish_to_chat(context: ContextTypes.DEFAULT_TYPE, state: PublishState) -> tuple[bool, str | None]:
     if not state.target_chat_id:
         return False, "Чат не выбран. Начните публикацию заново."
@@ -437,16 +443,16 @@ async def _publish_to_chat(context: ContextTypes.DEFAULT_TYPE, state: PublishSta
             bot_username = None
     if not bot_username:
         return False, "BOT_USERNAME не задан. Укажите BOT_USERNAME в переменных окружения."
-    deep_link = f"https://t.me/{bot_username}?startapp={start_param}"
+    deep_link = f"https://t.me/{bot_username}/quiz?startapp={start_param}"
     markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", url=deep_link)]])
-    caption = f"Тест: {title}"
+    caption = _clean_caption(f"Тест: {title}")
     photo = state.photo_file_id or settings.default_publish_photo_file_id
 
     try:
         if photo:
             await context.bot.send_photo(chat_id=state.target_chat_id, photo=photo, caption=caption, reply_markup=markup)
         else:
-            await context.bot.send_message(chat_id=state.target_chat_id, text=caption, reply_markup=markup)
+            await context.bot.send_message(chat_id=state.target_chat_id, text=caption, reply_markup=markup, disable_web_page_preview=True)
     except Exception as exc:
         return False, f"Ошибка публикации: {exc}"
 

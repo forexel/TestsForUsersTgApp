@@ -89,9 +89,11 @@ export default function App() {
     setInitDataUnsafe(WebApp.initDataUnsafe ?? null);
 
     // Read Telegram start_param (when opened via t.me/... ?startapp=...)
+    const search = new URLSearchParams(typeof window !== "undefined" ? window.location.search : "");
     const startParam =
       WebApp.initDataUnsafe?.start_param ||
-      new URLSearchParams(typeof window !== "undefined" ? window.location.search : "").get("tgWebAppStartParam");
+      search.get("tgWebAppStartParam");
+    const testSlugParam = search.get("test_slug");
 
     // Decide initial route based on start_param; otherwise keep current hash; fallback to home
     const ensureInitialRoute = () => {
@@ -100,6 +102,12 @@ export default function App() {
       const currentHash = typeof window !== "undefined" ? window.location.hash : "";
       if (currentHash && currentHash !== "#/" && currentHash !== "#") return; // keep existing hash
 
+      if (testSlugParam) {
+        const slug = normalizeSlug(testSlugParam);
+        try { window.location.assign(`#/run?slug=${encodeURIComponent(slug)}`); }
+        catch { window.location.hash = `#/run?slug=${encodeURIComponent(slug)}`; }
+        return;
+      }
       if (startParam) {
         const mRun = startParam.match(/^run_([A-Za-z0-9._\-]+)$/);
         const mRunTest = startParam.match(/^run_test-([A-Za-z0-9._\-]+)(?:__src_-?\d+)?$/);
