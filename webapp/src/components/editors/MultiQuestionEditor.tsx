@@ -64,7 +64,7 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
     () => draft.results.some((r) => r.minScore !== null || r.maxScore !== null),
     [draft.results]
   );
-  const isPointsLike = (draft.scoringMode ?? "majority") === "points" || hasScoreRanges;
+  const showPointRanges = (draft.scoringMode ?? "majority") === "points" || hasScoreRanges;
 
   const canSubmit = useMemo(() => {
     const titleOk = draft.title.trim().length > 2;
@@ -74,10 +74,9 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
   }, [draft.title, draft.questions, loading]);
   const updateDraft = <K extends keyof TestDraft>(key: K, value: TestDraft[K]) => setDraft((p) => ({ ...p, [key]: value }));
   const pointRanges = useMemo(() => {
-    if (!isPointsLike) return [];
     const aCount = draft.questions[0]?.answers?.length || draft.results.length || 1;
     return buildPointRanges(draft.questions.length, aCount);
-  }, [draft.questions, isPointsLike]);
+  }, [draft.questions, draft.results.length]);
 
   useEffect(() => {
     if (isEdit) return;
@@ -243,7 +242,7 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
       {step === 3 && (
         <form className="form" onSubmit={handleSubmit}>
           <h2 className="form-title">Результат</h2>
-          <ResultList draft={draft} onChange={updateDraft} pointRanges={pointRanges} isPointsLike={isPointsLike} />
+          <ResultList draft={draft} onChange={updateDraft} pointRanges={pointRanges} showPointRanges={showPointRanges} />
           {error && <p className="error">{error}</p>}
           <footer className="actions bottom">
             <button type="button" className="secondary" onClick={() => setStep(2)} disabled={submitting}>Назад</button>
@@ -335,12 +334,12 @@ function ResultList({
   draft,
   onChange,
   pointRanges,
-  isPointsLike,
+  showPointRanges,
 }: {
   draft: TestDraft;
   onChange: <K extends keyof TestDraft>(key: K, value: TestDraft[K]) => void;
   pointRanges: PointRange[];
-  isPointsLike: boolean;
+  showPointRanges: boolean;
 }) {
   const results = draft.results;
   const update = (i: number, v: ResultDraft) => onChange("results", results.map((r, idx) => (idx === i ? v : r)));
@@ -353,9 +352,9 @@ function ResultList({
         <div key={idx} className="editor-block">
           <label className="label">
             Заголовок результата {idx + 1}
-            {(isPointsLike && pointRanges[idx])
-              ? ` (от ${pointRanges[idx].min} до ${pointRanges[idx].max} баллов)`
-              : ""}
+            {(showPointRanges && pointRanges[idx]) ? (
+              <span className="label-range">{` (баллы ${pointRanges[idx].min}-${pointRanges[idx].max})`}</span>
+            ) : null}
           </label>
           <input
             className="input"

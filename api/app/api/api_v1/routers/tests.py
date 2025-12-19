@@ -150,6 +150,7 @@ def create_test_handler(
     init_data: TelegramInitData = Depends(get_init_data),
     response: Response = None,  # добавили
 ):
+    payload.is_public = True
     # --- slug normalization & auto-generation ---
     proposed = (payload.slug or "").strip()
     if not proposed:
@@ -213,6 +214,8 @@ def update_test_handler(
     if not test:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test not found")
     _ensure_owner_or_admin(test, init_data)
+    if payload.is_public is False:
+        payload.is_public = True
     updated = update_test(db, test, payload)
     db.commit()
     db.refresh(updated)
