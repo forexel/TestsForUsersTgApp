@@ -299,7 +299,17 @@ async def publish_test_callback(update: Update, context: ContextTypes.DEFAULT_TY
 
 
 async def publish_skip_photo_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    await publish_test_callback(update, context)
+    query = update.callback_query
+    if not query:
+        return
+    await query.answer()
+    user = query.from_user
+    if not user:
+        return
+    state = get_publish_state(user.id)
+    if not state or state.step != "photo":
+        return
+    await _publish_to_chat(context, state)
 
 
 async def publish_skip_short_text_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -311,7 +321,18 @@ async def publish_skip_title_callback(update: Update, context: ContextTypes.DEFA
 
 
 async def publish_photo_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    return
+    message = update.effective_message
+    user = update.effective_user
+    if not message or not user:
+        return
+    state = get_publish_state(user.id)
+    if not state or state.step != "photo":
+        return
+    photo = message.photo[-1] if message.photo else None
+    if not photo:
+        return
+    state.photo_file_id = photo.file_id
+    await _publish_to_chat(context, state)
 
 
 async def publish_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -359,6 +380,17 @@ async def publish_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE
             await message.reply_text("Не удалось проверить бота в этом чате.")
             return
 
+    state.target_chat_id = target
+    state.source_chat_id = chat_id
+    state.step = "photo"
+    set_publish_state(state)
+    kb = InlineKeyboardMarkup([[InlineKeyboardButton("Далее без картинки", callback_data="publish_skip_photo")]])
+    await message.reply_text("Пришлите картинку для поста или нажмите «Далее без картинки».", reply_markup=kb)
+
+
+async def _publish_to_chat(context: ContextTypes.DEFAULT_TYPE, state: PublishState) -> None:
+    if not state.target_chat_id:
+        return
     title = state.test_slug
     api = ApiClient()
     try:
@@ -374,29 +406,17 @@ async def publish_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE
             pass
 
     settings = get_settings()
-    bot_username = settings.bot_username
-    if not bot_username:
-        try:
-            me = await context.bot.get_me()
-            bot_username = me.username
-        except Exception:
-            bot_username = None
-    if not bot_username:
-        await message.reply_text("BOT_USERNAME не задан. Укажите BOT_USERNAME в переменных окружения.")
-        return
-
     start_param = f"run_test-{state.test_slug}"
-    if chat_id is not None:
-        start_param = f"{start_param}__src_{chat_id}"
-    deep_link = f"https://t.me/{bot_username}?start={start_param}"
-    markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", url=deep_link)]])
+    if state.source_chat_id is not None:
+        start_param = f"{start_param}__src_{state.source_chat_id}"
+    webapp_url = f"{settings.webapp_url.rstrip('/')}/?tgWebAppStartParam={start_param}"
+    markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", web_app=WebAppInfo(url=webapp_url))]])
     caption = f"Тест: {title}"
-    photo = settings.default_publish_photo_file_id
+    photo = state.photo_file_id or settings.default_publish_photo_file_id
 
     if photo:
-        await context.bot.send_photo(chat_id=target, photo=photo, caption=caption, reply_markup=markup)
+        await context.bot.send_photo(chat_id=state.target_chat_id, photo=photo, caption=caption, reply_markup=markup)
     else:
-        await context.bot.send_message(chat_id=target, text=caption, reply_markup=markup)
+        await context.bot.send_message(chat_id=state.target_chat_id, text=caption, reply_markup=markup)
 
-    clear_publish_state(user.id)
-    await message.reply_text("Опубликовано.")
+    clear_publish_state(state.user_id)

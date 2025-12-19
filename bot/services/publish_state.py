@@ -14,6 +14,8 @@ class PublishState:
     short_text: Optional[str] = None
     title_override: Optional[str] = None
     channel_username: Optional[str] = None
+    target_chat_id: Optional[int | str] = None
+    source_chat_id: Optional[int] = None
     message_id: Optional[int] = field(default=None)
 
 

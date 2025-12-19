@@ -2,7 +2,7 @@ from __future__ import annotations
 
 from typing import Tuple
 
-from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update
+from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import ContextTypes
 
 from bot.config import get_settings
@@ -60,7 +60,7 @@ async def publish_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     start_param = f"run_test-{slug}"
     if src_chat_id is not None:
         start_param = f"{start_param}__src_{src_chat_id}"
-    deep_link = f"https://t.me/{bot_username}?start={start_param}"
+    webapp_url = f"{settings.webapp_url.rstrip('/')}/?tgWebAppStartParam={start_param}"
 
     title = slug
     api = ApiClient()
@@ -78,7 +78,7 @@ async def publish_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     caption = caption_override or f"Тест: {title}"
     photo = settings.default_publish_photo_file_id
-    markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", url=deep_link)]])
+    markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", web_app=WebAppInfo(url=webapp_url))]])
 
     if photo:
         await context.bot.send_photo(
