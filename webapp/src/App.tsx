@@ -25,6 +25,13 @@ type Route =
   | { name: "result"; slug: string; answerId: string }
   | { name: "statistic" };
 
+function normalizeSlug(slug: string): string {
+  if (!slug) return slug;
+  if (slug.startsWith("test-test-")) return `test-${slug.slice("test-test-".length)}`;
+  if (!slug.startsWith("test-")) return `test-${slug}`;
+  return slug;
+}
+
 function parseHash(): Route {
   const pathname = typeof window !== "undefined" ? window.location.pathname : "";
   if (pathname.replace(/\/+$/, "") === "/statistic") {
@@ -96,7 +103,8 @@ export default function App() {
       if (startParam) {
         const mRun = startParam.match(/^run_([A-Za-z0-9._\-]+)$/);
         const mRunTest = startParam.match(/^run_test-([A-Za-z0-9._\-]+)(?:__src_-?\d+)?$/);
-        const slug = mRun?.[1] || mRunTest?.[1];
+        const slugRaw = mRun?.[1] || mRunTest?.[1];
+        const slug = slugRaw ? normalizeSlug(slugRaw) : "";
         if (slug) {
           try { window.location.assign(`#/run?slug=${encodeURIComponent(slug)}`); }
           catch { window.location.hash = `#/run?slug=${encodeURIComponent(slug)}`; }

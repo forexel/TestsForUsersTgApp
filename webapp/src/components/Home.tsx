@@ -56,6 +56,13 @@ function decodeStartParam(raw: string): string {
   } catch { return raw; }
 }
 
+function normalizeSlug(slug: string): string {
+  if (!slug) return slug;
+  if (slug.startsWith("test-test-")) return `test-${slug.slice("test-test-".length)}`;
+  if (!slug.startsWith("test-")) return `test-${slug}`;
+  return slug;
+}
+
 function extractStartParam(): string | null {
   const candidates: string[] = [];
 
@@ -100,7 +107,8 @@ function extractStartParam(): string | null {
     for (const v of expand(cand)) {
       const mRun = typeof v === "string" ? v.match(/run_([A-Za-z0-9._\-]+)/) : null;
       const mRunTest = typeof v === "string" ? v.match(/run_test-([A-Za-z0-9._\-]+)(?:__src_-?\d+)?/) : null;
-      const slug = mRun?.[1] || mRunTest?.[1];
+      const rawSlug = mRun?.[1] || mRunTest?.[1];
+      const slug = rawSlug ? normalizeSlug(rawSlug) : "";
       if (slug) {
         const norm = `run_${slug}`;
         log("deep-link: normalized start_param =", norm);

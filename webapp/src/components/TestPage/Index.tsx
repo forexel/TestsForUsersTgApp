@@ -81,8 +81,17 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
       })
       .catch((e: any) => {
         if (!mounted) return;
-        warn('TestPage fetch fail:', e?.response?.status || e?.message, e?.response?.data);
-        setError(e?.response?.data?.detail || e?.message || 'Тест не найден');
+        const status = e?.response?.status;
+        const detail = e?.response?.data?.detail;
+        const message = e?.message;
+        warn('TestPage fetch fail:', status || message, e?.response?.data);
+        const parts = [
+          detail || message || 'Тест не найден',
+          status ? `status=${status}` : null,
+          apiBase ? `api=${apiBase}` : null,
+          slug ? `slug=${slug}` : null,
+        ].filter(Boolean);
+        setError(parts.join(" | "));
       })
       .finally(() => { if (mounted) setLoading(false); });
 

@@ -428,8 +428,17 @@ async def _publish_to_chat(context: ContextTypes.DEFAULT_TYPE, state: PublishSta
     if state.source_chat_id is not None:
         start_param = f"{start_param}__src_{state.source_chat_id}"
     settings = get_settings()
-    webapp_url = f"{settings.webapp_url.rstrip('/')}/?tgWebAppStartParam={start_param}"
-    markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", url=webapp_url)]])
+    bot_username = settings.bot_username
+    if not bot_username:
+        try:
+            me = await context.bot.get_me()
+            bot_username = me.username
+        except Exception:
+            bot_username = None
+    if not bot_username:
+        return False, "BOT_USERNAME не задан. Укажите BOT_USERNAME в переменных окружения."
+    deep_link = f"https://t.me/{bot_username}?startapp={start_param}"
+    markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", url=deep_link)]])
     caption = f"Тест: {title}"
     photo = state.photo_file_id or settings.default_publish_photo_file_id
 
