@@ -12,6 +12,7 @@ import { Home } from "./components/Home";
 import Testsuccess from "./components/Testsuccess";
 import TestPage from "./components/TestPage/Index";
 import ResultPage from "./components/TestPage/result";
+import Statistic from "./components/Statistic";
 
 const api = axios.create({ baseURL: (import.meta as any).env?.VITE_API_BASE_URL });
 
@@ -21,9 +22,14 @@ type Route =
   | { name: "editor"; testType: TestType; slug?: string }
   | { name: "success"; slug?: string }
   | { name: "run"; slug: string }
-  | { name: "result"; slug: string; answerId: string };
+  | { name: "result"; slug: string; answerId: string }
+  | { name: "statistic" };
 
 function parseHash(): Route {
+  const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+  if (pathname.replace(/\/+$/, "") === "/statistic") {
+    return { name: "statistic" };
+  }
   const raw = (typeof window !== "undefined" ? window.location.hash : "") || ""; // like #/home
   const path = raw.replace(/^#\/?/, "");
   const [p, qs] = path.split("?", 2);
@@ -53,6 +59,8 @@ function parseHash(): Route {
       const answerId = params.get("answerId") || "";
       return { name: "result", slug, answerId };
     }
+    case "statistic":
+      return { name: "statistic" };
     default:
       return { name: "home" };
   }
@@ -80,6 +88,8 @@ export default function App() {
 
     // Decide initial route based on start_param; otherwise keep current hash; fallback to home
     const ensureInitialRoute = () => {
+      const pathname = typeof window !== "undefined" ? window.location.pathname : "";
+      if (pathname.replace(/\/+$/, "") === "/statistic") return;
       const currentHash = typeof window !== "undefined" ? window.location.hash : "";
       if (currentHash && currentHash !== "#/" && currentHash !== "#") return; // keep existing hash
 
@@ -139,6 +149,9 @@ export default function App() {
       )}
       {route.name === "result" && (
         <ResultPage api={api} slug={route.slug} answerId={route.answerId} />
+      )}
+      {route.name === "statistic" && (
+        <Statistic api={api} />
       )}
     </main>
   );

@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import uuid
 from datetime import datetime
+from typing import Literal
 
 from pydantic import BaseModel, Field, ConfigDict
 
@@ -109,3 +110,7 @@ class TestRead(TestBase):
 
 class SlugResponse(BaseModel):
     slug: str
+
+
+class TestLogCreate(BaseModel):
+    event_type: Literal["open", "complete"] | None = None

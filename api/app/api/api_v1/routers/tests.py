@@ -16,7 +16,7 @@ from api.app.core.telegram import TelegramInitData
 from api.app.crud.tests import create_test, delete_test, get_test_by_id, get_test_by_slug, list_tests, update_test
 from api.app.db.session import get_db
 from api.app.dependencies.auth import get_current_admin, get_init_data
-from api.app.schemas import SlugResponse, TestCreate, TestRead, TestUpdate
+from api.app.schemas import SlugResponse, TestCreate, TestLogCreate, TestRead, TestUpdate
 from api.app.models.test_models import Test as TestModel
 from api.app.models.test_models import TestRunLog
 
@@ -250,6 +250,7 @@ def get_public_test(slug: str, db: Session = Depends(get_db)):
 @router.post("/slug/{slug}/logs", status_code=status.HTTP_201_CREATED)
 def log_test_completion(
     slug: str,
+    payload: TestLogCreate | None = None,
     db: Session = Depends(get_db),
     init_data: TelegramInitData = Depends(get_init_data),
 ):
@@ -258,6 +259,9 @@ def log_test_completion(
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test not found")
     source_id, source_type = _extract_source(init_data)
     link = _build_share_link(slug)
+    event_type = (payload.event_type if payload else None) or "complete"
+    if event_type not in {"open", "complete"}:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid event_type")
     log_entry = TestRunLog(
         test=test,
         test_id=getattr(test, "id", None),
@@ -268,14 +272,16 @@ def log_test_completion(
         source_chat_id=source_id,
         source_chat_type=source_type,
         test_owner_username=getattr(test, "created_by_username", None),
+        event_type=event_type,
     )
     db.add(log_entry)
     db.commit()
     logger.info(
-        "POST /tests/slug/%s/logs user=%s source=%s",
+        "POST /tests/slug/%s/logs user=%s source=%s event=%s",
         slug,
         getattr(init_data.user, "id", None),
         source_id,
+        event_type,
     )
     return {"status": "ok"}
 

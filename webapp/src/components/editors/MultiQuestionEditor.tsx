@@ -17,6 +17,27 @@ const defaultQuestion = (order: number, answersCount = 3): QuestionDraft => ({
 });
 const defaultResult = (): ResultDraft => ({ title: "Результат", description: "", minScore: null, maxScore: null });
 
+type PointRange = { min: number; max: number };
+
+function buildPointRanges(questionCount: number, answerCount: number): PointRange[] {
+  const qCount = Math.max(1, questionCount);
+  const aCount = Math.max(1, answerCount);
+  const minSum = 1 * qCount;
+  const maxSum = aCount * qCount;
+  const buckets = aCount;
+  const totalValues = maxSum - minSum + 1;
+  const baseSize = Math.floor(totalValues / buckets);
+  const remainder = totalValues % buckets;
+  let start = minSum;
+  return Array.from({ length: buckets }, (_, i) => {
+    const size = baseSize + (i < remainder ? 1 : 0);
+    const end = start + size - 1;
+    const out = { min: start, max: end };
+    start = end + 1;
+    return out;
+  });
+}
+
 const initialDraft = (): TestDraft => ({
   slug: "",
   title: "",
@@ -47,6 +68,11 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
     return titleOk && hasQuestions && eachQ && !loading;
   }, [draft.title, draft.questions, loading]);
   const updateDraft = <K extends keyof TestDraft>(key: K, value: TestDraft[K]) => setDraft((p) => ({ ...p, [key]: value }));
+  const pointRanges = useMemo(() => {
+    if ((draft.scoringMode ?? "majority") !== "points") return [];
+    const aCount = draft.questions[0]?.answers?.length || 1;
+    return buildPointRanges(draft.questions.length, aCount);
+  }, [draft.scoringMode, draft.questions]);
 
   useEffect(() => {
     if (isEdit) return;
@@ -209,7 +235,7 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
       {step === 3 && (
         <form className="form" onSubmit={handleSubmit}>
           <h2 className="form-title">Результат</h2>
-          <ResultList draft={draft} onChange={updateDraft} />
+          <ResultList draft={draft} onChange={updateDraft} pointRanges={pointRanges} />
           {error && <p className="error">{error}</p>}
           <footer className="actions bottom">
             <button type="button" className="secondary" onClick={() => setStep(2)} disabled={submitting}>Назад</button>
@@ -297,7 +323,15 @@ function AnswerList({ answers, onChange }: { answers: AnswerDraft[]; onChange: (
   );
 }
 
-function ResultList({ draft, onChange }: { draft: TestDraft; onChange: <K extends keyof TestDraft>(key: K, value: TestDraft[K]) => void }) {
+function ResultList({
+  draft,
+  onChange,
+  pointRanges,
+}: {
+  draft: TestDraft;
+  onChange: <K extends keyof TestDraft>(key: K, value: TestDraft[K]) => void;
+  pointRanges: PointRange[];
+}) {
   const results = draft.results;
   const update = (i: number, v: ResultDraft) => onChange("results", results.map((r, idx) => (idx === i ? v : r)));
   const add = () => onChange("results", [...results, defaultResult()]);
@@ -307,7 +341,12 @@ function ResultList({ draft, onChange }: { draft: TestDraft; onChange: <K extend
       <h3>Результаты</h3>
       {results.map((r, idx) => (
         <div key={idx} className="editor-block">
-          <label className="label">Заголовок результата {idx + 1}</label>
+          <label className="label">
+            Заголовок результата {idx + 1}
+            {((draft.scoringMode ?? "majority") === "points" && pointRanges[idx])
+              ? ` (от ${pointRanges[idx].min} до ${pointRanges[idx].max} баллов)`
+              : ""}
+          </label>
           <input
             className="input"
             placeholder={`Например, «Тип ${idx + 1}»`}
@@ -367,34 +406,23 @@ function toApiPayload(draft: TestDraft, opts?: { includeSlug?: boolean }) {
   if ((draft.scoringMode ?? "majority") === "points") {
     const qCount = draft.questions.length || 1;
     const aCount = draft.questions[0]?.answers?.length || 1;
-
-    // Сумма порядков: 1..aCount в каждом из qCount вопросов
-    const minSum = 1 * qCount;          // минимум — везде выбран 1-й вариант
-    const maxSum = aCount * qCount;     // максимум — везде выбран aCount-й вариант
-
-    const buckets = aCount;             // число интервалов = числу ответов
-    const totalValues = maxSum - minSum + 1; // количество целочисленных сумм
-    const baseSize = Math.floor(totalValues / buckets);
-    const remainder = totalValues % buckets; // первые remainder интервалов шире на 1
+    const ranges = buildPointRanges(qCount, aCount);
 
     // гарантируем длину results ровно равной buckets
-    base.results = Array.from({ length: buckets }, (_, i) => base.results[i] || {
+    base.results = Array.from({ length: aCount }, (_, i) => base.results[i] || {
       title: `Результат ${i + 1}`,
       description: base.results[i]?.description ?? null,
       min_score: null,
       max_score: null,
     });
 
-    let start = minSum;
     base.results = base.results.map((r: any, i: number) => {
-      const size = baseSize + (i < remainder ? 1 : 0);
-      const end = start + size - 1;
+      const range = ranges[i];
       const out = {
         ...r,
-        min_score: r.min_score ?? start,
-        max_score: r.max_score ?? end,
+        min_score: r.min_score ?? range.min,
+        max_score: r.max_score ?? range.max,
       };
-      start = end + 1;
       return out;
     });
   }

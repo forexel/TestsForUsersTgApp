@@ -10,6 +10,8 @@ class BotSettings(BaseSettings):
     api_base_url: HttpUrl | str = "http://api:8000/api/v1"
     webapp_url: HttpUrl | str = "https://example.com"
     admin_ids: List[int] = []
+    bot_username: str | None = None
+    default_publish_photo_file_id: str | None = None
 
     class Config:
         env_file = ".env"

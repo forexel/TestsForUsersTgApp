@@ -1,14 +1,22 @@
 from __future__ import annotations
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import CallbackQueryHandler, ContextTypes, MessageHandler, filters
+from telegram.error import BadRequest, Forbidden, TelegramError
 
 from bot.services.api_client import ApiClient
 from bot.services.session_store import session_store
+from bot.services.publish_state import (
+    PublishState,
+    get_publish_state,
+    set_publish_state,
+    clear_publish_state,
+)
 
 import os
 import json
 import urllib.request
 import re
+import html
 from bot.config import get_settings
 
 SUPPORTED_TYPES = {"single"}
@@ -17,6 +25,12 @@ RUN_SLUG_RE = re.compile(r"(?:run_|slug=)([A-Za-z0-9._\-]+)", re.IGNORECASE)
 
 def register_handlers(application):
     application.add_handler(CallbackQueryHandler(handle_answer, pattern=r"^ans:"))
+    application.add_handler(CallbackQueryHandler(publish_test_callback, pattern=r"^publish_test:"))
+    application.add_handler(CallbackQueryHandler(publish_skip_photo_callback, pattern=r"^publish_skip_photo$"))
+    application.add_handler(CallbackQueryHandler(publish_skip_short_text_callback, pattern=r"^publish_skip_short_text$"))
+    application.add_handler(CallbackQueryHandler(publish_skip_title_callback, pattern=r"^publish_skip_title$"))
+    application.add_handler(MessageHandler(filters.PHOTO, publish_photo_router))
+    application.add_handler(MessageHandler(filters.TEXT & ~filters.COMMAND, publish_text_router))
     application.add_handler(MessageHandler((filters.ALL & ~filters.COMMAND), detect_test_links))
 
 

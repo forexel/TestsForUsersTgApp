@@ -143,6 +143,7 @@ class TestRunLog(Base):
     source_chat_id: Mapped[int] = mapped_column(BigInteger(), nullable=False, default=0)
     source_chat_type: Mapped[str | None] = mapped_column(String(32))
     test_owner_username: Mapped[str | None] = mapped_column(String(255))
+    event_type: Mapped[str] = mapped_column(String(16), nullable=False, default="complete", server_default="complete")
     created_at: Mapped[datetime] = mapped_column(
         DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
     )

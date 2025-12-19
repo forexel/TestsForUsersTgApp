@@ -58,6 +58,7 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const logStateRef = useRef<"idle" | "pending" | "done">("idle");
+  const openLogRef = useRef<"idle" | "pending" | "done">("idle");
 
   const q = useMemo(() => test?.questions?.[0], [test]);
   const cleanedDescription = useMemo(() => {
@@ -93,13 +94,37 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
     if (!slug) return;
     if (logStateRef.current === "pending" || logStateRef.current === "done") return;
     logStateRef.current = "pending";
-    api.post(`/tests/slug/${encodeURIComponent(slug)}/logs`, {}, { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } })
+    api.post(
+      `/tests/slug/${encodeURIComponent(slug)}/logs`,
+      { event_type: "complete" },
+      { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } }
+    )
       .then(() => { logStateRef.current = "done"; })
       .catch((err: any) => {
         logStateRef.current = "idle";
         warn("logCompletion fail", err?.response?.status || err?.message);
       });
   }, [api, slug]);
+
+  const logOpen = useCallback(() => {
+    if (!slug) return;
+    if (openLogRef.current === "pending" || openLogRef.current === "done") return;
+    openLogRef.current = "pending";
+    api.post(
+      `/tests/slug/${encodeURIComponent(slug)}/logs`,
+      { event_type: "open" },
+      { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } }
+    )
+      .then(() => { openLogRef.current = "done"; })
+      .catch((err: any) => {
+        openLogRef.current = "idle";
+        warn("logOpen fail", err?.response?.status || err?.message);
+      });
+  }, [api, slug]);
+
+  useEffect(() => {
+    if (test) logOpen();
+  }, [test, logOpen]);
 
   if (loading) return <section className="card"><p>Загрузка…</p></section>;
   if (error) return <section className="card"><p className="error">{error}</p></section>;
@@ -262,17 +287,15 @@ function MultiRunner({ test, onResultReady }: { test: TestRead; onResultReady?: 
     const results = test.results || [];
     if (isPointsMode) {
       const total = picks.reduce((sum, p) => sum + (p.order || 1), 0);
-      const qCount = questions.length;
-      const aCount = answersCount || 1;
-      const minSum = 1 * qCount;
-      const maxSum = aCount * qCount;
-      const buckets = results.length || 4;
-      const step = (maxSum - minSum + 1) / buckets;
-      let idx = Math.floor((total - minSum) / step);
-      if (idx < 0) idx = 0;
-      if (idx >= buckets) idx = buckets - 1;
-      const res = results[idx] || results[results.length - 1];
-      return res ? { title: res.title, description: res.description || undefined } : null;
+      const ranged = results.find((r) => {
+        const min = r.min_score ?? null;
+        const max = r.max_score ?? null;
+        if (min === null || max === null) return false;
+        return total >= min && total <= max;
+      });
+      if (ranged) return { title: ranged.title, description: ranged.description || undefined };
+      const fallback = results[0] || results[results.length - 1];
+      return fallback ? { title: fallback.title, description: fallback.description || undefined } : null;
     } else {
       const counts: Record<number, number> = {};
       picks.forEach(p => { counts[p.order] = (counts[p.order] || 0) + 1; });
