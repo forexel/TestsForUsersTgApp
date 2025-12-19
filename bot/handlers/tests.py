@@ -323,7 +323,9 @@ async def publish_confirm_callback(update: Update, context: ContextTypes.DEFAULT
     state = get_publish_state(user.id)
     if not state or state.step != "confirm":
         return
-    await _publish_to_chat(context, state)
+    ok, error = await _publish_to_chat(context, state)
+    if not ok:
+        await query.message.reply_text(error or "Не удалось опубликовать пост.")
 
 
 async def publish_skip_short_text_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -405,9 +407,9 @@ async def publish_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE
     await message.reply_text("Пришлите картинку для поста или нажмите «Далее без картинки».", reply_markup=kb)
 
 
-async def _publish_to_chat(context: ContextTypes.DEFAULT_TYPE, state: PublishState) -> None:
+async def _publish_to_chat(context: ContextTypes.DEFAULT_TYPE, state: PublishState) -> tuple[bool, str | None]:
     if not state.target_chat_id:
-        return
+        return False, "Чат не выбран. Начните публикацию заново."
     title = state.test_slug
     api = ApiClient()
     try:
@@ -431,9 +433,17 @@ async def _publish_to_chat(context: ContextTypes.DEFAULT_TYPE, state: PublishSta
     caption = f"Тест: {title}"
     photo = state.photo_file_id or settings.default_publish_photo_file_id
 
-    if photo:
-        await context.bot.send_photo(chat_id=state.target_chat_id, photo=photo, caption=caption, reply_markup=markup)
-    else:
-        await context.bot.send_message(chat_id=state.target_chat_id, text=caption, reply_markup=markup)
+    try:
+        if photo:
+            await context.bot.send_photo(chat_id=state.target_chat_id, photo=photo, caption=caption, reply_markup=markup)
+        else:
+            await context.bot.send_message(chat_id=state.target_chat_id, text=caption, reply_markup=markup)
+    except Exception as exc:
+        return False, f"Ошибка публикации: {exc}"
 
     clear_publish_state(state.user_id)
+    try:
+        await context.bot.send_message(chat_id=state.user_id, text="Пост опубликован.")
+    except Exception:
+        pass
+    return True, None
