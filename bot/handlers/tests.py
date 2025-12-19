@@ -50,6 +50,7 @@ def parse_start_payload(raw: str | None) -> tuple[str | None, int | None]:
 def register_handlers(application):
     application.add_handler(CallbackQueryHandler(handle_answer, pattern=r"^ans:"))
     application.add_handler(CallbackQueryHandler(publish_test_callback, pattern=r"^publish_test:"))
+    application.add_handler(CallbackQueryHandler(publish_confirm_callback, pattern=r"^publish_confirm$"))
     application.add_handler(CallbackQueryHandler(publish_skip_photo_callback, pattern=r"^publish_skip_photo$"))
     application.add_handler(CallbackQueryHandler(publish_skip_short_text_callback, pattern=r"^publish_skip_short_text$"))
     application.add_handler(CallbackQueryHandler(publish_skip_title_callback, pattern=r"^publish_skip_title$"))
@@ -311,6 +312,19 @@ async def publish_skip_photo_callback(update: Update, context: ContextTypes.DEFA
         return
     await _publish_to_chat(context, state)
 
+async def publish_confirm_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    query = update.callback_query
+    if not query:
+        return
+    await query.answer()
+    user = query.from_user
+    if not user:
+        return
+    state = get_publish_state(user.id)
+    if not state or state.step != "confirm":
+        return
+    await _publish_to_chat(context, state)
+
 
 async def publish_skip_short_text_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
     await publish_test_callback(update, context)
@@ -332,7 +346,10 @@ async def publish_photo_router(update: Update, context: ContextTypes.DEFAULT_TYP
     if not photo:
         return
     state.photo_file_id = photo.file_id
-    await _publish_to_chat(context, state)
+    state.step = "confirm"
+    set_publish_state(state)
+    kb = InlineKeyboardMarkup([[InlineKeyboardButton("Опубликовать", callback_data="publish_confirm")]])
+    await message.reply_text("Картинка получена. Нажмите «Опубликовать».", reply_markup=kb)
 
 
 async def publish_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
