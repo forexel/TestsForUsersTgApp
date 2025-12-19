@@ -58,7 +58,6 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
   const [error, setError] = useState<string | null>(null);
   const [picked, setPicked] = useState<string | null>(null);
   const logStateRef = useRef<"idle" | "pending" | "done">("idle");
-  const openLogRef = useRef<"idle" | "pending" | "done">("idle");
 
   const q = useMemo(() => test?.questions?.[0], [test]);
   const cleanedDescription = useMemo(() => {
@@ -105,26 +104,6 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
         warn("logCompletion fail", err?.response?.status || err?.message);
       });
   }, [api, slug]);
-
-  const logOpen = useCallback(() => {
-    if (!slug) return;
-    if (openLogRef.current === "pending" || openLogRef.current === "done") return;
-    openLogRef.current = "pending";
-    api.post(
-      `/tests/slug/${encodeURIComponent(slug)}/logs`,
-      { event_type: "open" },
-      { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } }
-    )
-      .then(() => { openLogRef.current = "done"; })
-      .catch((err: any) => {
-        openLogRef.current = "idle";
-        warn("logOpen fail", err?.response?.status || err?.message);
-      });
-  }, [api, slug]);
-
-  useEffect(() => {
-    if (test) logOpen();
-  }, [test, logOpen]);
 
   if (loading) return <section className="card"><p>Загрузка…</p></section>;
   if (error) return <section className="card"><p className="error">{error}</p></section>;

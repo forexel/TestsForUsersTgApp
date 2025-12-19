@@ -117,7 +117,10 @@ export default function SingleEditor({
       }
     } catch (err: any) {
       WebApp.HapticFeedback?.notificationOccurred?.("error");
-      const message = err?.response?.data?.detail ?? err?.message ?? "Не удалось сохранить тест";
+      const status = err?.response?.status;
+      const message = status === 401 || status === 403
+        ? "Сессия Telegram устарела или нет доступа. Закройте и откройте мини‑приложение заново."
+        : err?.response?.data?.detail ?? err?.message ?? "Не удалось сохранить тест";
       setSubmitError(String(message));
     } finally {
       setSubmitting(false);

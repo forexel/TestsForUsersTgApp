@@ -60,6 +60,11 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
   const [loading, setLoading] = useState(false);
   const [loadError, setLoadError] = useState<string | null>(null);
   const isEdit = Boolean(editSlug);
+  const hasScoreRanges = useMemo(
+    () => draft.results.some((r) => r.minScore !== null || r.maxScore !== null),
+    [draft.results]
+  );
+  const isPointsLike = (draft.scoringMode ?? "majority") === "points" || hasScoreRanges;
 
   const canSubmit = useMemo(() => {
     const titleOk = draft.title.trim().length > 2;
@@ -69,10 +74,10 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
   }, [draft.title, draft.questions, loading]);
   const updateDraft = <K extends keyof TestDraft>(key: K, value: TestDraft[K]) => setDraft((p) => ({ ...p, [key]: value }));
   const pointRanges = useMemo(() => {
-    if ((draft.scoringMode ?? "majority") !== "points") return [];
+    if (!isPointsLike) return [];
     const aCount = draft.questions[0]?.answers?.length || 1;
     return buildPointRanges(draft.questions.length, aCount);
-  }, [draft.scoringMode, draft.questions]);
+  }, [draft.questions, isPointsLike]);
 
   useEffect(() => {
     if (isEdit) return;
@@ -110,7 +115,7 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
         setDraft(fromApiTest(data));
         setTestId(data.id);
         setCurrentSlug(data.slug);
-        setStep(2);
+        setStep(1);
       })
       .catch((err: any) => {
         if (cancelled) return;
@@ -161,7 +166,10 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
       }
     } catch (err: any) {
       WebApp.HapticFeedback?.notificationOccurred?.("error");
-      const message = err?.response?.data?.detail ?? err?.message ?? "Не удалось сохранить тест";
+      const status = err?.response?.status;
+      const message = status === 401 || status === 403
+        ? "Сессия Telegram устарела или нет доступа. Закройте и откройте мини‑приложение заново."
+        : err?.response?.data?.detail ?? err?.message ?? "Не удалось сохранить тест";
       setError(String(message));
     } finally { setSubmitting(false); }
   };
@@ -235,7 +243,7 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
       {step === 3 && (
         <form className="form" onSubmit={handleSubmit}>
           <h2 className="form-title">Результат</h2>
-          <ResultList draft={draft} onChange={updateDraft} pointRanges={pointRanges} />
+          <ResultList draft={draft} onChange={updateDraft} pointRanges={pointRanges} isPointsLike={isPointsLike} />
           {error && <p className="error">{error}</p>}
           <footer className="actions bottom">
             <button type="button" className="secondary" onClick={() => setStep(2)} disabled={submitting}>Назад</button>
@@ -327,10 +335,12 @@ function ResultList({
   draft,
   onChange,
   pointRanges,
+  isPointsLike,
 }: {
   draft: TestDraft;
   onChange: <K extends keyof TestDraft>(key: K, value: TestDraft[K]) => void;
   pointRanges: PointRange[];
+  isPointsLike: boolean;
 }) {
   const results = draft.results;
   const update = (i: number, v: ResultDraft) => onChange("results", results.map((r, idx) => (idx === i ? v : r)));
@@ -343,7 +353,7 @@ function ResultList({
         <div key={idx} className="editor-block">
           <label className="label">
             Заголовок результата {idx + 1}
-            {((draft.scoringMode ?? "majority") === "points" && pointRanges[idx])
+            {(isPointsLike && pointRanges[idx])
               ? ` (от ${pointRanges[idx].min} до ${pointRanges[idx].max} баллов)`
               : ""}
           </label>

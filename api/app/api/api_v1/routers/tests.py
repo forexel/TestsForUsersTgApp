@@ -12,7 +12,7 @@ import re
 from typing import Optional
 
 from api.app.core.config import get_settings
-from api.app.core.telegram import TelegramInitData
+from api.app.core.telegram import TelegramInitData, parse_init_data
 from api.app.crud.tests import create_test, delete_test, get_test_by_id, get_test_by_slug, list_tests, update_test
 from api.app.db.session import get_db
 from api.app.dependencies.auth import get_current_admin, get_init_data
@@ -239,10 +239,42 @@ def get_test_by_slug_handler(
 
 
 @router.get("/slug/{slug}/public", response_model=TestRead)
-def get_public_test(slug: str, db: Session = Depends(get_db)):
+def get_public_test(slug: str, request: Request, db: Session = Depends(get_db)):
     test = get_test_by_slug(db, slug)
     if not test or not test.is_public:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Public test not found")
+    init_data = None
+    raw_init = request.headers.get("X-Telegram-Init-Data") or ""
+    if raw_init:
+        try:
+            init_data = parse_init_data(raw_init)
+        except HTTPException:
+            init_data = None
+    if init_data:
+        source_id, source_type = _extract_source(init_data)
+        user_id = init_data.user.id
+        user_username = getattr(init_data.user, "username", None)
+    else:
+        source_id, source_type = 0, None
+        user_id = 0
+        user_username = None
+    try:
+        log_entry = TestRunLog(
+            test=test,
+            test_id=getattr(test, "id", None),
+            test_slug=slug,
+            link=_build_share_link(slug),
+            user_id=user_id,
+            user_username=user_username,
+            source_chat_id=source_id,
+            source_chat_type=source_type,
+            test_owner_username=getattr(test, "created_by_username", None),
+            event_type="open",
+        )
+        db.add(log_entry)
+        db.commit()
+    except Exception:
+        db.rollback()
     logger.info("GET /tests/slug/%s/public -> found id=%s", slug, getattr(test, "id", None))
     return TestRead.from_orm(test)
 

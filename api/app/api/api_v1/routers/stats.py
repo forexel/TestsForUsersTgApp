@@ -19,12 +19,13 @@ def get_stats(db: Session = Depends(get_db)):
         .scalar()
         or 0
     )
-    tests_opened = (
+    opened_only = (
         db.query(func.count(TestRunLog.id))
         .filter(TestRunLog.event_type == "open")
         .scalar()
         or 0
     )
+    tests_opened = max(opened_only, tests_completed)
     return StatsResponse(
         tests_created=tests_created,
         tests_completed=tests_completed,
