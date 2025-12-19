@@ -42,6 +42,8 @@ def parse_start_payload(raw: str | None) -> tuple[str | None, int | None]:
             slug = payload
     elif raw.startswith("run_"):
         slug = raw.removeprefix("run_")
+    if slug and not slug.startswith("test-"):
+        slug = f"test-{slug}"
     return slug, src_chat_id
 
 

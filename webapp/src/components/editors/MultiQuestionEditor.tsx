@@ -64,7 +64,7 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
     () => draft.results.some((r) => r.minScore !== null || r.maxScore !== null),
     [draft.results]
   );
-  const showPointRanges = (draft.scoringMode ?? "majority") === "points" || hasScoreRanges;
+  const showPointRanges = (draft.scoringMode ?? "majority") === "points" || hasScoreRanges || draft.questions.length > 0;
 
   const canSubmit = useMemo(() => {
     const titleOk = draft.title.trim().length > 2;
@@ -347,7 +347,6 @@ function ResultList({
   const remove = (i: number) => onChange("results", results.filter((_, idx) => idx !== i).length ? results.filter((_, idx) => idx !== i) : [defaultResult()]);
   return (
     <div className="editor-section">
-      <h3>Результаты</h3>
       {results.map((r, idx) => (
         <div key={idx} className="editor-block">
           <label className="label">
