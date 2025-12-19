@@ -74,7 +74,7 @@ class TestBase(BaseModel):
     title: str
     type: TestType
     description: str | None = None
-    is_public: bool = False
+    is_public: bool = True
 
 
 class TestCreate(TestBase):

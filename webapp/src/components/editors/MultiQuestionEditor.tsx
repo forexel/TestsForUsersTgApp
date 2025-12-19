@@ -75,7 +75,7 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
   const updateDraft = <K extends keyof TestDraft>(key: K, value: TestDraft[K]) => setDraft((p) => ({ ...p, [key]: value }));
   const pointRanges = useMemo(() => {
     if (!isPointsLike) return [];
-    const aCount = draft.questions[0]?.answers?.length || 1;
+    const aCount = draft.questions[0]?.answers?.length || draft.results.length || 1;
     return buildPointRanges(draft.questions.length, aCount);
   }, [draft.questions, isPointsLike]);
 

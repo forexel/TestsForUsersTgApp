@@ -5,6 +5,7 @@ from telegram.error import BadRequest, Forbidden, TelegramError
 
 from bot.services.api_client import ApiClient
 from bot.services.session_store import session_store
+from bot.handlers.publish import parse_chat_target
 from bot.services.publish_state import (
     PublishState,
     get_publish_state,
@@ -209,7 +210,10 @@ async def reply_with_test_button(message, slug: str, src_chat_id: int | None = N
         start_param = f"run_{slug}"
     webapp_url = f"{base_url}/?tgWebAppStartParam={start_param}"
     kb = InlineKeyboardMarkup(
-        [[InlineKeyboardButton(text="Открыть тест", web_app=WebAppInfo(url=webapp_url))]]
+        [[
+            InlineKeyboardButton(text="Открыть тест", web_app=WebAppInfo(url=webapp_url)),
+            InlineKeyboardButton(text="Опубликовать", callback_data=f"publish_test:{slug}"),
+        ]]
     )
     await message.reply_text(
         f'тест "{title}" ', reply_markup=kb
@@ -272,9 +276,24 @@ def extract_slug_from_message(message) -> str | None:
 
 
 async def publish_test_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    message = update.effective_message
-    if message:
-        await message.reply_text("Публикация через кнопку сейчас не активна. Используйте команду: /publish <slug> <chat> [текст].")
+    query = update.callback_query
+    if not query:
+        return
+    await query.answer()
+    user = query.from_user
+    message = query.message
+    if not user or not message:
+        return
+    data = query.data or ""
+    slug = data.split("publish_test:", 1)[-1].strip()
+    if not slug:
+        await message.reply_text("Не удалось определить тест.")
+        return
+    state = PublishState(user_id=user.id, test_slug=slug, test_title=slug, step="chat")
+    set_publish_state(state)
+    await message.reply_text(
+        "Куда опубликовать? Пришлите @канала или пересланное сообщение из группы/канала."
+    )
 
 
 async def publish_skip_photo_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
@@ -294,4 +313,88 @@ async def publish_photo_router(update: Update, context: ContextTypes.DEFAULT_TYP
 
 
 async def publish_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
-    return
+    message = update.effective_message
+    user = update.effective_user
+    if not message or not user:
+        return
+    state = get_publish_state(user.id)
+    if not state or state.step != "chat":
+        return
+    chat_id = None
+    target = None
+    fwd = getattr(message, "forward_from_chat", None)
+    if fwd:
+        chat_id = int(getattr(fwd, "id", 0)) or None
+        target = chat_id
+    if not target and message.text:
+        target, chat_id = parse_chat_target(message.text)
+    if not target:
+        await message.reply_text("Не распознал чат. Пришлите @канала или пересланное сообщение из группы.")
+        return
+
+    try:
+        me = await context.bot.get_me()
+        bot_id = me.id
+    except Exception:
+        bot_id = None
+
+    try:
+        member = await context.bot.get_chat_member(target, user.id)
+        if member.status not in {"administrator", "creator"}:
+            await message.reply_text("Вы не админ в этом чате.")
+            return
+    except Exception:
+        await message.reply_text("Не удалось проверить права. Убедитесь, что бот есть в чате.")
+        return
+
+    if bot_id is not None:
+        try:
+            bot_member = await context.bot.get_chat_member(target, bot_id)
+            if bot_member.status in {"left", "kicked"}:
+                await message.reply_text("Бот не добавлен в этот чат.")
+                return
+        except Exception:
+            await message.reply_text("Не удалось проверить бота в этом чате.")
+            return
+
+    title = state.test_slug
+    api = ApiClient()
+    try:
+        data = await api.get_public_test(state.test_slug)
+        if data and data.get("title"):
+            title = str(data["title"])
+    except Exception:
+        pass
+    finally:
+        try:
+            await api.aclose()
+        except Exception:
+            pass
+
+    settings = get_settings()
+    bot_username = settings.bot_username
+    if not bot_username:
+        try:
+            me = await context.bot.get_me()
+            bot_username = me.username
+        except Exception:
+            bot_username = None
+    if not bot_username:
+        await message.reply_text("BOT_USERNAME не задан. Укажите BOT_USERNAME в переменных окружения.")
+        return
+
+    start_param = f"run_test-{state.test_slug}"
+    if chat_id is not None:
+        start_param = f"{start_param}__src_{chat_id}"
+    deep_link = f"https://t.me/{bot_username}?start={start_param}"
+    markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", url=deep_link)]])
+    caption = f"Тест: {title}"
+    photo = settings.default_publish_photo_file_id
+
+    if photo:
+        await context.bot.send_photo(chat_id=target, photo=photo, caption=caption, reply_markup=markup)
+    else:
+        await context.bot.send_message(chat_id=target, text=caption, reply_markup=markup)
+
+    clear_publish_state(user.id)
+    await message.reply_text("Опубликовано.")

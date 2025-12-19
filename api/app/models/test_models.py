@@ -33,7 +33,7 @@ class Test(Base):
         nullable=False,
     )
     description: Mapped[str | None] = mapped_column(Text())
-    is_public: Mapped[bool] = mapped_column(Boolean(), default=False, nullable=False)
+    is_public: Mapped[bool] = mapped_column(Boolean(), default=True, nullable=False)
     created_by: Mapped[int] = mapped_column(BigInteger(), nullable=False)
     created_by_username: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(
