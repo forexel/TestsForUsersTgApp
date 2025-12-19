@@ -20,7 +20,28 @@ import html
 from bot.config import get_settings
 
 SUPPORTED_TYPES = {"single"}
-RUN_SLUG_RE = re.compile(r"(?:run_|slug=)([A-Za-z0-9._\-]+)", re.IGNORECASE)
+RUN_SLUG_RE = re.compile(r"(?:run_|run_test-|slug=)([A-Za-z0-9._\-]+)", re.IGNORECASE)
+
+
+def parse_start_payload(raw: str | None) -> tuple[str | None, int | None]:
+    if not raw:
+        return None, None
+    slug = None
+    src_chat_id: int | None = None
+    if raw.startswith("run_test-"):
+        payload = raw.removeprefix("run_test-")
+        if "__src_" in payload:
+            parts = payload.split("__src_", 1)
+            slug = parts[0]
+            try:
+                src_chat_id = int(parts[1])
+            except (TypeError, ValueError):
+                src_chat_id = None
+        else:
+            slug = payload
+    elif raw.startswith("run_"):
+        slug = raw.removeprefix("run_")
+    return slug, src_chat_id
 
 
 def register_handlers(application):
@@ -39,18 +60,21 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE) -> N
     if not message:
         return
 
-    # Extract slug from `/start run_<slug>`
+    # Extract slug from `/start run_<slug>` or `/start run_test-<slug>__src_<chat_id>`
     slug = None
+    src_chat_id = None
     try:
         if context.args:
             arg = context.args[0]
-            if isinstance(arg, str) and arg.startswith("run_"):
+            if isinstance(arg, str) and arg.startswith("run_test-"):
+                slug, src_chat_id = parse_start_payload(arg)
+            elif isinstance(arg, str) and arg.startswith("run_"):
                 slug = arg.removeprefix("run_")
     except Exception:
         slug = None
 
     if slug:
-        await reply_with_test_button(message, slug)
+        await reply_with_test_button(message, slug, src_chat_id=src_chat_id)
         return
 
     # No slug provided → offer to open app root
@@ -176,10 +200,14 @@ async def detect_test_links(update: Update, context: ContextTypes.DEFAULT_TYPE) 
     await reply_with_test_button(message, slug)
 
 
-async def reply_with_test_button(message, slug: str) -> None:
+async def reply_with_test_button(message, slug: str, src_chat_id: int | None = None) -> None:
     base_url = get_webapp_base_url()
     title = await fetch_test_title(slug)
-    webapp_url = f"{base_url}/?tgWebAppStartParam=run_{slug}"
+    if src_chat_id is not None:
+        start_param = f"run_test-{slug}__src_{src_chat_id}"
+    else:
+        start_param = f"run_{slug}"
+    webapp_url = f"{base_url}/?tgWebAppStartParam={start_param}"
     kb = InlineKeyboardMarkup(
         [[InlineKeyboardButton(text="Открыть тест", web_app=WebAppInfo(url=webapp_url))]]
     )
@@ -241,3 +269,29 @@ def extract_slug_from_message(message) -> str | None:
         if match and match.group(1):
             return match.group(1)
     return None
+
+
+async def publish_test_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    message = update.effective_message
+    if message:
+        await message.reply_text("Публикация через кнопку сейчас не активна. Используйте команду: /publish <slug> <chat> [текст].")
+
+
+async def publish_skip_photo_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await publish_test_callback(update, context)
+
+
+async def publish_skip_short_text_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await publish_test_callback(update, context)
+
+
+async def publish_skip_title_callback(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    await publish_test_callback(update, context)
+
+
+async def publish_photo_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    return
+
+
+async def publish_text_router(update: Update, context: ContextTypes.DEFAULT_TYPE) -> None:
+    return

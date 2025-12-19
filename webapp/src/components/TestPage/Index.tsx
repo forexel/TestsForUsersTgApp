@@ -73,7 +73,7 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
     const pubUrl = `/tests/slug/${encodeURIComponent(slug)}/public`;
     log('TestPage fetch: GET', pubUrl);
 
-    api.get(pubUrl)
+    api.get(pubUrl, { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } })
       .then((r) => {
         if (!mounted) return;
         setTest(r.data as TestRead);

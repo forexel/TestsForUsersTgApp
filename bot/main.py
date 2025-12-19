@@ -6,6 +6,7 @@ from telegram.ext import ApplicationBuilder, CommandHandler
 
 from bot.config import get_settings
 from bot.handlers.admin import admin_command
+from bot.handlers.publish import publish_command
 from bot.handlers.tests import register_handlers, start_command
 
 
@@ -18,6 +19,7 @@ def main() -> None:
     application = ApplicationBuilder().token(settings.bot_token).build()
     application.add_handler(CommandHandler("start", start_command))
     application.add_handler(CommandHandler("admin", admin_command))
+    application.add_handler(CommandHandler("publish", publish_command))
     register_handlers(application)
 
     # Recommended entry point for PTB v20/21: blocks and manages lifecycle internally

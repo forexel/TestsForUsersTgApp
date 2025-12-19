@@ -25,6 +25,7 @@ logger = logging.getLogger("tests")
 router = APIRouter(prefix="/tests", tags=["tests"], redirect_slashes=False,)
 
 _SLUG_RE = re.compile(r"[^a-z0-9-]+")
+_SRC_RE = re.compile(r"__src_(-?\d+)")
 
 def _slugify(text: Optional[str]) -> str:
     if not text:
@@ -85,6 +86,14 @@ def _extract_source(init_data: TelegramInitData) -> tuple[int, str | None]:
             return int(chat_id), chat_type
         except (TypeError, ValueError):
             return 0, chat_type
+    start_param = getattr(init_data, "start_param", None) or ""
+    if start_param:
+        m = _SRC_RE.search(start_param)
+        if m and m.group(1):
+            try:
+                return int(m.group(1)), chat_type or "group"
+            except (TypeError, ValueError):
+                return 0, chat_type
     return 0, chat_type
 
 

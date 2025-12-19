@@ -98,9 +98,11 @@ function extractStartParam(): string | null {
 
   for (const cand of candidates) {
     for (const v of expand(cand)) {
-      const m = typeof v === "string" ? v.match(/run_([A-Za-z0-9._\-]+)/) : null;
-      if (m) {
-        const norm = `run_${m[1]}`;
+      const mRun = typeof v === "string" ? v.match(/run_([A-Za-z0-9._\-]+)/) : null;
+      const mRunTest = typeof v === "string" ? v.match(/run_test-([A-Za-z0-9._\-]+)(?:__src_-?\d+)?/) : null;
+      const slug = mRun?.[1] || mRunTest?.[1];
+      if (slug) {
+        const norm = `run_${slug}`;
         log("deep-link: normalized start_param =", norm);
         return norm;
       }

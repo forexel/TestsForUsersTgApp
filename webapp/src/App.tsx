@@ -94,8 +94,10 @@ export default function App() {
       if (currentHash && currentHash !== "#/" && currentHash !== "#") return; // keep existing hash
 
       if (startParam) {
-        if (startParam.startsWith("run_")) {
-          const slug = startParam.slice(4);
+        const mRun = startParam.match(/^run_([A-Za-z0-9._\-]+)$/);
+        const mRunTest = startParam.match(/^run_test-([A-Za-z0-9._\-]+)(?:__src_-?\d+)?$/);
+        const slug = mRun?.[1] || mRunTest?.[1];
+        if (slug) {
           try { window.location.assign(`#/run?slug=${encodeURIComponent(slug)}`); }
           catch { window.location.hash = `#/run?slug=${encodeURIComponent(slug)}`; }
           return;
