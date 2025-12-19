@@ -60,7 +60,7 @@ async def publish_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     start_param = f"run_test-{slug}"
     if src_chat_id is not None:
         start_param = f"{start_param}__src_{src_chat_id}"
-    webapp_url = f"{settings.webapp_url.rstrip('/')}/?tgWebAppStartParam={start_param}"
+    deep_link = f"https://t.me/{bot_username}?startapp={start_param}"
 
     title = slug
     api = ApiClient()
@@ -78,7 +78,7 @@ async def publish_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
 
     caption = caption_override or f"Тест: {title}"
     photo = settings.default_publish_photo_file_id
-    markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", web_app=WebAppInfo(url=webapp_url))]])
+    markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", url=deep_link)]])
 
     if photo:
         await context.bot.send_photo(

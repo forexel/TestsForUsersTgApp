@@ -425,11 +425,32 @@ async def _publish_to_chat(context: ContextTypes.DEFAULT_TYPE, state: PublishSta
             pass
 
     settings = get_settings()
+    bot_username = settings.bot_username
+    if not bot_username:
+        try:
+            me = await context.bot.get_me()
+            bot_username = me.username
+        except Exception:
+            bot_username = None
+    if not bot_username:
+        return False, "BOT_USERNAME не задан. Укажите BOT_USERNAME в переменных окружения."
+
     start_param = f"run_test-{state.test_slug}"
     if state.source_chat_id is not None:
         start_param = f"{start_param}__src_{state.source_chat_id}"
-    webapp_url = f"{settings.webapp_url.rstrip('/')}/?tgWebAppStartParam={start_param}"
-    markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", web_app=WebAppInfo(url=webapp_url))]])
+    deep_link = f"https://t.me/{bot_username}?startapp={start_param}"
+
+    try:
+        chat = await context.bot.get_chat(state.target_chat_id)
+        chat_type = getattr(chat, "type", None)
+    except Exception:
+        chat_type = None
+
+    if chat_type == "private":
+        webapp_url = f"{settings.webapp_url.rstrip('/')}/?tgWebAppStartParam={start_param}"
+        markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", web_app=WebAppInfo(url=webapp_url))]])
+    else:
+        markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", url=deep_link)]])
     caption = f"Тест: {title}"
     photo = state.photo_file_id or settings.default_publish_photo_file_id
 
