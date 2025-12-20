@@ -86,6 +86,7 @@ class Result(Base):
     test_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tests.id", ondelete="CASCADE"), nullable=False)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text())
+    image_url: Mapped[str | None] = mapped_column(Text())
     min_score: Mapped[int | None] = mapped_column(Integer())
     max_score: Mapped[int | None] = mapped_column(Integer())
 

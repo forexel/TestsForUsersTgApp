@@ -12,6 +12,7 @@ from api.app.models import TestType
 class ResultBase(BaseModel):
     title: str
     description: str | None = None
+    image_url: str | None = None
     min_score: int | None = None
     max_score: int | None = None
 

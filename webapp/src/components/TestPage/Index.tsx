@@ -19,7 +19,6 @@ type Answer = {
   text: string;
   explanation_title?: string | null;
   explanation_text?: string | null;
-  image_url?: string | null;
 };
 type Question = {
   id: string;
@@ -150,7 +149,6 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
                     className={`tp-option${picked === a.id ? " tp-option--selected" : ""}`}
                     onClick={() => setPicked(a.id)}
                   >
-                    {a.image_url && <img className="tp-option-image" src={a.image_url} alt="answer" />}
                     {a.text}
                   </button>
                 ))}
@@ -340,7 +338,6 @@ function MultiRunner({ test, onResultReady }: { test: TestRead; onResultReady?: 
                   className={`tp-option${picked === a.id ? " tp-option--selected" : ""}`}
                   onClick={() => setSelected(prev => ({ ...prev, [current.id]: a.id }))}
                 >
-                  {a.image_url && <img className="tp-option-image" src={a.image_url} alt="answer" />}
                   {a.text}
                 </button>
               ))}

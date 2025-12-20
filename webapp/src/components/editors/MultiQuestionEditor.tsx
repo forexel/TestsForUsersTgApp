@@ -302,28 +302,10 @@ function QuestionList({ draft, onChange }: { draft: TestDraft; onChange: <K exte
   const [uploadError, setUploadError] = useState<string | null>(null);
   const uploadQuestionImage = async (file: File, index: number) => {
     setUploadError(null);
-    const url = URL.createObjectURL(file);
-    try {
-      const img = new Image();
-      const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
-        img.onload = () => resolve({ w: img.width, h: img.height });
-        img.onerror = () => reject(new Error("Неверное изображение"));
-        img.src = url;
-      });
-      if (dims.w < dims.h) {
-        setUploadError("Разрешены только изображения, где ширина больше или равна высоте.");
-        return;
-      }
-    } catch {
-      setUploadError("Не удалось прочитать изображение.");
-      return;
-    } finally {
-      URL.revokeObjectURL(url);
-    }
     try {
       const base = String((import.meta as any).env?.VITE_API_BASE_URL || "").replace(/\/$/, "");
       const endpoint = `${base}/media/upload`;
-      const processed = await compressImage(file);
+      const processed = await compressImage(file, { cropTallToSquare: true });
       const form = new FormData();
       form.append("file", processed);
       const res = await fetch(endpoint, {
@@ -352,24 +334,24 @@ function QuestionList({ draft, onChange }: { draft: TestDraft; onChange: <K exte
       {questions.map((q, idx) => (
         <div key={idx} className="editor-block">
           <div className="question-label">
-            <div className="question-label__header">
-              <span className="question-label__title">Вопрос {idx + 1}</span>
-              <label className="attach-btn" title="Добавить картинку">
-                <input
-                  type="file"
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) uploadQuestionImage(file, idx);
-                    e.currentTarget.value = "";
-                  }}
-                />
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M7 13.5l7.1-7.1a3 3 0 114.2 4.2l-8.5 8.5a5 5 0 11-7.1-7.1l9.2-9.2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </label>
-            </div>
+            <span className="question-label__title">Вопрос {idx + 1}</span>
+            <label className="question-image-picker">
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadQuestionImage(file, idx);
+                  e.currentTarget.value = "";
+                }}
+              />
+              {q.imageUrl ? (
+                <img className="question-image-preview" src={q.imageUrl} alt="question" />
+              ) : (
+                <span className="question-image-placeholder">Добавить картинку</span>
+              )}
+            </label>
             <textarea
               required
               placeholder="Введите текст вопроса"
@@ -377,9 +359,6 @@ function QuestionList({ draft, onChange }: { draft: TestDraft; onChange: <K exte
               onChange={(e) => updateQuestion(idx, { ...q, text: e.target.value })}
             />
           </div>
-          {q.imageUrl && (
-            <img className="question-image-preview" src={q.imageUrl} alt="question" />
-          )}
           <AnswerList
             answers={q.answers}
             onChange={(answers) => {
@@ -413,34 +392,6 @@ function AnswerList({ answers, onChange }: { answers: AnswerDraft[]; onChange: (
     next[index] = value;
     onChange(next.map((item, idx) => ({ ...item, orderNum: idx + 1 })));
   };
-  const [imageError, setImageError] = useState<string | null>(null);
-  const uploadAnswerImage = async (file: File, index: number) => {
-    setImageError(null);
-    try {
-      const processed = await compressImage(file);
-      const base = String((import.meta as any).env?.VITE_API_BASE_URL || "").replace(/\/$/, "");
-      const endpoint = `${base}/media/upload`;
-      const form = new FormData();
-      form.append("file", processed);
-      const res = await fetch(endpoint, {
-        method: "POST",
-        headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" },
-        body: form,
-      });
-      if (!res.ok) {
-        setImageError("Не удалось загрузить изображение.");
-        return;
-      }
-      const data = await res.json();
-      if (!data?.url) {
-        setImageError("Не удалось получить ссылку на изображение.");
-        return;
-      }
-      updateAnswer(index, { ...answers[index], imageUrl: data.url } as any);
-    } catch {
-      setImageError("Ошибка загрузки изображения.");
-    }
-  };
   return (
     <div className="answers">
       {answers.map((answer, idx) => (
@@ -452,28 +403,9 @@ function AnswerList({ answers, onChange }: { answers: AnswerDraft[]; onChange: (
               value={answer.text ?? ""}
               onChange={(e) => updateAnswer(idx, { ...answer, text: e.target.value })}
             />
-            <div className="answer-attach">
-              <label className="attach-btn" title="Добавить картинку">
-                <input
-                  type="file"
-                  accept="image/*"
-                  style={{ display: "none" }}
-                  onChange={(e) => {
-                    const file = e.target.files?.[0];
-                    if (file) uploadAnswerImage(file, idx);
-                    e.currentTarget.value = "";
-                  }}
-                />
-                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
-                  <path d="M7 13.5l7.1-7.1a3 3 0 114.2 4.2l-8.5 8.5a5 5 0 11-7.1-7.1l9.2-9.2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
-                </svg>
-              </label>
-              {answer.imageUrl && <img className="answer-image-preview" src={answer.imageUrl} alt="answer" />}
-            </div>
           </div>
         </div>
       ))}
-      {imageError && <p className="error">{imageError}</p>}
       <button type="button" className="tertiary" onClick={() => onChange([...answers, { orderNum: answers.length + 1, text: "" }])}>Добавить ответ</button>
     </div>
   );
@@ -551,7 +483,6 @@ function toApiPayload(draft: TestDraft, opts?: { includeSlug?: boolean }) {
       answers: q.answers.map((a, ai) => ({
         order_num: ai + 1,
         text: a.text,
-        image_url: (a as any).imageUrl,
         explanation_title: (a as any).explanationTitle,
         explanation_text: (a as any).explanationText,
       })),
@@ -600,7 +531,6 @@ function fromApiTest(test: TestRead): TestDraft {
       id: answer.id,
       orderNum: answer.order_num ?? idx + 1,
       text: answer.text || "",
-      imageUrl: (answer as any).image_url || undefined,
       explanationTitle: answer.explanation_title || undefined,
       explanationText: answer.explanation_text || undefined,
     })),

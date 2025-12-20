@@ -22,6 +22,7 @@ export interface ResultRead {
   id: string;
   title: string;
   description?: string | null;
+  image_url?: string | null;
   min_score?: number | null;
   max_score?: number | null;
 }

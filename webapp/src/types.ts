@@ -38,6 +38,7 @@ export interface ResultDraft {
   id?: string;
   title: string;
   description?: string;
+  imageUrl?: string;
   minScore: number | null;
   maxScore: number | null;
 }

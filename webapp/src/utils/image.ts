@@ -1,4 +1,4 @@
-export async function compressImage(file: File, opts?: { maxSide?: number; quality?: number }) {
+export async function compressImage(file: File, opts?: { maxSide?: number; quality?: number; cropTallToSquare?: boolean }) {
   if (!file.type.startsWith("image/")) return file;
   const maxSide = opts?.maxSide ?? 1280;
   const quality = opts?.quality ?? 0.82;
@@ -19,16 +19,21 @@ export async function compressImage(file: File, opts?: { maxSide?: number; quali
 
   const { width, height } = img;
   if (!width || !height) return file;
-  const scale = Math.min(1, maxSide / Math.max(width, height));
-  const targetW = Math.round(width * scale);
-  const targetH = Math.round(height * scale);
+  const cropTall = Boolean(opts?.cropTallToSquare) && height > width;
+  const srcW = cropTall ? width : width;
+  const srcH = cropTall ? width : height;
+  const srcX = 0;
+  const srcY = cropTall ? Math.round((height - width) / 2) : 0;
+  const scale = Math.min(1, maxSide / Math.max(srcW, srcH));
+  const targetW = Math.round(srcW * scale);
+  const targetH = Math.round(srcH * scale);
 
   const canvas = document.createElement("canvas");
   canvas.width = targetW;
   canvas.height = targetH;
   const ctx = canvas.getContext("2d");
   if (!ctx) return file;
-  ctx.drawImage(img, 0, 0, targetW, targetH);
+  ctx.drawImage(img, srcX, srcY, srcW, srcH, 0, 0, targetW, targetH);
 
   const blob = await new Promise<Blob | null>((resolve) =>
     canvas.toBlob((b) => resolve(b), "image/jpeg", quality)
