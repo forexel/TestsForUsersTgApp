@@ -91,7 +91,7 @@ export default function ResultPage({ api, slug, answerId }: { api: AxiosInstance
     <div className="tp-wrap">
       <div className="tp-root-title">Результат</div>
       <div className="tp-panel">
-        <div style={{ padding: 18 }} className="tp-result">
+        <div className="tp-panel__content tp-result">
           {pickedAnswer ? (
             <>
               {pickedAnswer.explanation_title && (

@@ -36,6 +36,7 @@ export interface QuestionDraft {
 // A result bucket (mainly used by multi scoring tests)
 export interface ResultDraft {
   id?: string;
+  orderNum?: number;
   title: string;
   description?: string;
   imageUrl?: string;

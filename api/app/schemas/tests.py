@@ -10,6 +10,7 @@ from api.app.models import TestType
 
 
 class ResultBase(BaseModel):
+    order_num: int | None = None
     title: str
     description: str | None = None
     image_url: str | None = None

@@ -64,7 +64,7 @@
 }
 
 .tp-step {
-  color: #3b82f6;
+  color: var(--tp-bg, #5b8bb5);
   font-weight: 800;
   margin: 6px 0 10px;
   font-size: 20px;
@@ -78,9 +78,10 @@
 }
 .tp-question-image {
   display: block;
-  width: calc(100% + 36px);
-  margin: -18px -18px 12px;
-  object-fit: cover;
+  width: 80%;
+  max-width: 100%;
+  margin: 6px auto 12px;
+  object-fit: contain;
   border-radius: 12px;
 }
 
@@ -101,7 +102,7 @@
   background: transparent;
   border: 2px solid rgba(0, 0, 0, 0.26);
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   text-align: center;
   color: #111;
   font-weight: 600;
@@ -114,14 +115,14 @@
 }
 .tp-radio input:checked + span {
   border-color: rgba(0, 0, 0, 0.73);
-  box-shadow: 2px -2px 0 rgba(0, 0, 0, 0.73);
+  box-shadow: 2px 2px 0 #CBCBCB;
 }
 .tp-option {
   width: 100%;
   background: transparent !important;
   border: 2px solid rgba(0, 0, 0, 0.26);
   border-radius: 12px;
-  padding: 10px 12px;
+  padding: 8px 12px;
   text-align: center;
   color: #111;
   font-weight: 600;
@@ -134,13 +135,14 @@
 }
 .tp-option--selected {
   border-color: rgba(0, 0, 0, 0.73);
-  box-shadow: 2px -2px 0 rgba(0, 0, 0, 0.73);
+  box-shadow: 2px 2px 0 #CBCBCB;
 }
 .tp-btn {
   width: 100%;
   border-radius: 20px;
   margin-top: 10px;
-  color: #111 !important; /* текст на кнопке чёрным */
+  background: var(--tp-bg, #5b8bb5);
+  color: #fff !important;
 }
 .tp-result-title { color: #3b82f6; font-weight: 800; text-align: center; margin: 0 0 8px; }
 .tp-result-image {
@@ -156,6 +158,8 @@
   min-height: 0;
   display: block;
   text-align: center;
+  max-height: 40vh;
+  overflow-y: auto;
 }
 .tp-close { width: 60%; margin: 12px auto 0; display: block; border-radius: 20px; }
 

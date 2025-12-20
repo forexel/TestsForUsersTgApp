@@ -35,8 +35,11 @@ def create_test(db: Session, payload: TestCreate, *, created_by: int, created_by
     )
     db.add(test)
 
-    for result in results_data:
-        result_obj = Result(test=test, **result)
+    for idx, result in enumerate(results_data):
+        payload = dict(result)
+        if not payload.get("order_num"):
+            payload["order_num"] = idx + 1
+        result_obj = Result(test=test, **payload)
         db.add(result_obj)
         db.flush()
 
@@ -85,8 +88,11 @@ def update_test(db: Session, test: Test, payload: TestUpdate) -> Test:
     if "results" in data:
         test.results.clear()
         db.flush()
-        for result in data["results"]:
-            db.add(Result(test=test, **result))
+        for idx, result in enumerate(data["results"]):
+            payload = dict(result)
+            if not payload.get("order_num"):
+                payload["order_num"] = idx + 1
+            db.add(Result(test=test, **payload))
 
     if "questions" in data:
         test.questions.clear()

@@ -150,6 +150,25 @@ button:disabled {
   font-size: 24px;
   font-weight: 800;
 }
+.stats-block {
+  margin-top: 16px;
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.stats-block__title {
+  font-weight: 700;
+  font-size: 18px;
+}
+.stats-control {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  font-weight: 600;
+}
+.stats-control input {
+  max-width: 200px;
+}
 
 .color-grid {
   display: flex;

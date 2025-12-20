@@ -67,7 +67,7 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
     () => draft.results.some((r) => r.minScore !== null || r.maxScore !== null),
     [draft.results]
   );
-  const showPointRanges = (draft.scoringMode ?? "majority") === "points" || hasScoreRanges || draft.questions.length > 0;
+  const showPointRanges = (draft.scoringMode ?? "majority") === "points" || hasScoreRanges;
 
   useEffect(() => {
     if (!draft.bgColor) updateDraft("bgColor", BG_COLORS[0]);
@@ -534,11 +534,12 @@ function toApiPayload(draft: TestDraft, opts?: { includeSlug?: boolean }) {
       })),
     })),
     results: draft.results.map((r, i) => ({
+      order_num: i + 1,
       title: r.title && r.title.trim() ? r.title : `Результат ${i + 1}`,
       description: r.description,
       image_url: (r as any).imageUrl,
-      min_score: r.minScore,
-      max_score: r.maxScore,
+      min_score: (draft.scoringMode ?? "majority") === "points" ? r.minScore : null,
+      max_score: (draft.scoringMode ?? "majority") === "points" ? r.maxScore : null,
     })),
   };
   if ((draft.scoringMode ?? "majority") === "points") {
@@ -558,6 +559,7 @@ function toApiPayload(draft: TestDraft, opts?: { includeSlug?: boolean }) {
       const range = ranges[i];
       const out = {
         ...r,
+        order_num: i + 1,
         min_score: r.min_score ?? range.min,
         max_score: r.max_score ?? range.max,
       };
@@ -595,14 +597,18 @@ function fromApiTest(test: TestRead): TestDraft {
     scoringMode,
     questions,
     answers: [],
-    results: (test.results || []).map((res) => ({
-      id: res.id,
-      title: res.title,
-      description: res.description || "",
-      imageUrl: (res as any).image_url || undefined,
-      minScore: res.min_score ?? null,
-      maxScore: res.max_score ?? null,
-    })),
+    results: (test.results || [])
+      .slice()
+      .sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0))
+      .map((res, idx) => ({
+        id: res.id,
+        orderNum: res.order_num ?? idx + 1,
+        title: res.title,
+        description: res.description || "",
+        imageUrl: (res as any).image_url || undefined,
+        minScore: res.min_score ?? null,
+        maxScore: res.max_score ?? null,
+      })),
   };
 }
 

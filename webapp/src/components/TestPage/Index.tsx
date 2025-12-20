@@ -35,7 +35,7 @@ type TestRead = {
   description?: string | null;
   questions: Question[];
   answers: Answer[];
-  results?: Array<{ id: string; title: string; description?: string | null; image_url?: string | null; min_score?: number | null; max_score?: number | null }>;
+  results?: Array<{ id: string; order_num?: number | null; title: string; description?: string | null; image_url?: string | null; min_score?: number | null; max_score?: number | null }>;
   bg_color?: string | null;
 };
 
@@ -284,7 +284,7 @@ function MultiRunner({ test, onResultReady }: { test: TestRead; onResultReady?: 
     }).filter(Boolean) as { order: number; id: string }[];
     if (picks.length !== questions.length) return null;
 
-    const results = test.results || [];
+    const results = (test.results || []).slice().sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
     if (isPointsMode) {
       const total = picks.reduce((sum, p) => sum + (p.order || 1), 0);
       const ranged = results.find((r) => {
@@ -326,7 +326,7 @@ function MultiRunner({ test, onResultReady }: { test: TestRead; onResultReady?: 
       <div className="tp-wrap">
         <div className="tp-root-title">Выбери ответ</div>
         <div className="tp-panel">
-          <div style={{ padding: 18 }}>
+          <div className="tp-panel__content">
             <div className="tp-step">{`Вопрос ${index + 1}/${questions.length}`}</div>
             {current.image_url && <img className="tp-question-image" src={current.image_url} alt="question" />}
             <h3 className="tp-question-title">{current.text}</h3>
@@ -363,8 +363,8 @@ function MultiRunner({ test, onResultReady }: { test: TestRead; onResultReady?: 
   return (
     <div className="tp-wrap">
       <div className="tp-root-title">Результат</div>
-      <div className="tp-panel" style={{ padding: 0 }}>
-        <div style={{ padding: 18 }}>
+      <div className="tp-panel">
+        <div className="tp-panel__content tp-result">
           {result ? (
             <>
               {result.imageUrl && <img className="tp-result-image" src={result.imageUrl} alt="result" />}

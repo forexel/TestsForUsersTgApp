@@ -57,7 +57,7 @@ class Test(Base):
         "Result",
         back_populates="test",
         cascade="all, delete-orphan",
-        order_by="Result.title",
+        order_by="Result.order_num",
     )
 
 
@@ -84,6 +84,7 @@ class Result(Base):
 
     id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
     test_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tests.id", ondelete="CASCADE"), nullable=False)
+    order_num: Mapped[int] = mapped_column(Integer(), nullable=False, default=1)
     title: Mapped[str] = mapped_column(String(255), nullable=False)
     description: Mapped[str | None] = mapped_column(Text())
     image_url: Mapped[str | None] = mapped_column(Text())

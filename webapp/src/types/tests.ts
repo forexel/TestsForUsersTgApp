@@ -20,6 +20,7 @@ export interface QuestionRead {
 
 export interface ResultRead {
   id: string;
+  order_num?: number | null;
   title: string;
   description?: string | null;
   image_url?: string | null;
