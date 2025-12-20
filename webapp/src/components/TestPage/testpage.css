@@ -48,7 +48,7 @@
   flex: 1;
   display: flex;
   flex-direction: column;
-  gap: 12px;
+  gap: 0;
 }
 
 .tp-header {
@@ -66,21 +66,21 @@
 .tp-step {
   color: var(--tp-bg, #5b8bb5);
   font-weight: 800;
-  margin: 6px 0 10px;
+  margin: 0;
   font-size: 20px;
 }
 
 .tp-question-title {
   color: #111;
   font-weight: 800;
-  margin: 6px 0 10px;
+  margin: 0;
   font-size: 18px;
 }
 .tp-question-image {
   display: block;
   width: 80%;
   max-width: 100%;
-  margin: 10px auto 10px;
+  margin: 0 auto;
   object-fit: contain;
   border-radius: 12px;
 }
@@ -89,6 +89,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
+  margin-top: 0;
 }
 .tp-radio {
   margin: 0;
