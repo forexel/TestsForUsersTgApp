@@ -82,6 +82,33 @@
   flex-direction: column;
   gap: 10px;
 }
+.tp-radio {
+  margin: 0;
+}
+.tp-radio input {
+  display: none;
+}
+.tp-radio span {
+  display: block;
+  width: 100%;
+  background: transparent;
+  border: 2px solid rgba(0, 0, 0, 0.26);
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: center;
+  color: #111;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.2;
+  box-shadow: none;
+}
+.tp-radio span:active {
+  transform: translateY(1px);
+}
+.tp-radio input:checked + span {
+  border-color: rgba(0, 0, 0, 0.73);
+  box-shadow: 2px -2px 0 rgba(0, 0, 0, 0.73);
+}
 .tp-option {
   width: 100%;
   background: transparent !important;

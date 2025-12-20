@@ -14,6 +14,7 @@ from bot.services.publish_state import (
 )
 
 import os
+import time
 import json
 import urllib.request
 import re
@@ -443,7 +444,8 @@ async def _publish_to_chat(context: ContextTypes.DEFAULT_TYPE, state: PublishSta
             bot_username = None
     if not bot_username:
         return False, "BOT_USERNAME не задан. Укажите BOT_USERNAME в переменных окружения."
-    deep_link = f"https://t.me/{bot_username}/quiz?startapp={start_param}"
+    cache_buster = int(time.time())
+    deep_link = f"https://t.me/{bot_username}/quiz?startapp={start_param}&v={cache_buster}"
     markup = InlineKeyboardMarkup([[InlineKeyboardButton("Пройти тест", url=deep_link)]])
     caption = _clean_caption(f"Тест: {title}")
     photo = state.photo_file_id or settings.default_publish_photo_file_id

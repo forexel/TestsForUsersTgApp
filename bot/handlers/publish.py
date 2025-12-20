@@ -1,6 +1,7 @@
 from __future__ import annotations
 
 from typing import Tuple
+import time
 
 from telegram import InlineKeyboardButton, InlineKeyboardMarkup, Update, WebAppInfo
 from telegram.ext import ContextTypes
@@ -66,7 +67,8 @@ async def publish_command(update: Update, context: ContextTypes.DEFAULT_TYPE) ->
     start_param = f"run_test-{slug}"
     if src_chat_id is not None:
         start_param = f"{start_param}__src_{src_chat_id}"
-    deep_link = f"https://t.me/{bot_username}/quiz?startapp={start_param}"
+    cache_buster = int(time.time())
+    deep_link = f"https://t.me/{bot_username}/quiz?startapp={start_param}&v={cache_buster}"
 
     title = slug
     api = ApiClient()
