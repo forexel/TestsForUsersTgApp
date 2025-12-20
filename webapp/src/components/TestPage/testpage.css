@@ -80,7 +80,7 @@
   display: block;
   width: 80%;
   max-width: 100%;
-  margin: 6px auto 12px;
+  margin: 10px auto 10px;
   object-fit: contain;
   border-radius: 12px;
 }
@@ -144,7 +144,7 @@
   background: var(--tp-bg, #5b8bb5);
   color: #fff !important;
 }
-.tp-result-title { color: #3b82f6; font-weight: 800; text-align: center; margin: 0 0 8px; }
+.tp-result-title { color: var(--tp-bg, #5b8bb5); font-weight: 800; text-align: center; margin: 0 0 8px; }
 .tp-result-image {
   width: 100%;
   border-radius: 12px;
