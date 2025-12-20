@@ -62,6 +62,10 @@
 .tp-panel__content--tight > * {
   margin: 0 !important;
 }
+.tp-panel .tp-panel__content.tp-panel__content--tight {
+  gap: 0 !important;
+  row-gap: 0 !important;
+}
 
 .tp-header {
   background: var(--tp-bg, #5b8bb5);
