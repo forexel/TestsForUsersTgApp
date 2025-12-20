@@ -49,9 +49,18 @@
   display: flex;
   flex-direction: column;
   gap: 0 !important;
+  row-gap: 0 !important;
 }
 .tp-panel__content > * {
-  margin: 0;
+  margin: 0 !important;
+  padding: 0;
+}
+.tp-panel__content--tight {
+  gap: 0 !important;
+  row-gap: 0 !important;
+}
+.tp-panel__content--tight > * {
+  margin: 0 !important;
 }
 
 .tp-header {
@@ -70,6 +79,7 @@
   color: var(--tp-bg, #5b8bb5);
   font-weight: 800;
   margin: 0;
+  padding: 0;
   font-size: 20px;
 }
 
@@ -77,13 +87,14 @@
   color: #111;
   font-weight: 800;
   margin: 0;
+  padding: 0;
   font-size: 18px;
 }
 .tp-question-image {
   display: block;
   width: 80%;
   max-width: 100%;
-  margin: 0 auto;
+  margin: 0 auto !important;
   object-fit: contain;
   border-radius: 12px;
 }
@@ -92,8 +103,7 @@
   display: flex;
   flex-direction: column;
   gap: 10px;
-  margin-top: 0;
-  margin-bottom: 0;
+  margin: 0 !important;
 }
 .tp-radio {
   margin: 0;
@@ -145,9 +155,12 @@
 .tp-btn {
   width: 100%;
   border-radius: 20px;
-  margin-top: 10px;
+  margin-top: 0 !important;
   background: var(--tp-bg, #5b8bb5);
   color: #fff !important;
+}
+.tp-btn--spaced {
+  margin-top: 12px !important;
 }
 .tp-result-title { color: var(--tp-bg, #5b8bb5); font-weight: 800; text-align: center; margin: 0 0 8px; }
 .tp-result-image {

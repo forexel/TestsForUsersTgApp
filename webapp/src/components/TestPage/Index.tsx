@@ -137,7 +137,7 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
         <div className="tp-wrap">
           <div className="tp-root-title">Выбери ответ</div>
           <div className="tp-panel">
-          <div className="tp-panel__content">
+          <div className="tp-panel__content tp-panel__content--tight">
             <div className="tp-step">{`Вопрос 1/1`}</div>
             {q.image_url && <img className="tp-question-image" src={q.image_url} alt="question" />}
             <h3 className="tp-question-title">{q.text}</h3>
@@ -155,7 +155,7 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
               </div>
               <button
                 type="button"
-                className="tp-btn"
+                className="tp-btn tp-btn--spaced"
                 disabled={!picked}
                 onClick={() => {
                   if (!picked) return;
@@ -210,7 +210,7 @@ function CardsRunner({ test, onReveal }: { test: any; onReveal?: () => void }) {
       <div className="tp-wrap">
         <div className="tp-root-title">Выбери карту</div>
         <div className="tp-panel">
-          <div className="tp-panel__content">
+          <div className="tp-panel__content tp-panel__content--tight">
             <div className="tp-instruction">{text || "Сосредоточься и задай себе вопрос"}</div>
             <div className={`tp-grid-cards tp-grid-${limited.length}`}>
               {limited.map((a: any) => (
@@ -344,7 +344,7 @@ function MultiRunner({ test, onResultReady }: { test: TestRead; onResultReady?: 
             </div>
             <button
               type="button"
-              className="tp-btn"
+              className="tp-btn tp-btn--spaced"
               disabled={!picked}
               onClick={() => {
                 if (index + 1 < questions.length) setIndex(index + 1);
