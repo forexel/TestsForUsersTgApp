@@ -51,6 +51,7 @@ export interface TestDraft {
   type: TestType;
   description?: string;
   isPublic: boolean;
+  bgColor?: string;
   scoringMode?: ScoringMode;
   questions: QuestionDraft[];
   answers: AnswerDraft[]; // used for "cards" tests

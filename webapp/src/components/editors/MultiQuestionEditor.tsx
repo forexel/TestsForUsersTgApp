@@ -8,6 +8,7 @@ import type { TestRead } from "../../types/tests";
 type Props = { api: AxiosInstance; onClose: () => void; editSlug?: string };
 
 const STORAGE_KEY = "multi_draft_v1";
+const BG_COLORS = ["3E8BBF", "ED7AC3", "73C363", "9A7071"];
 
 const defaultAnswer = (order: number): AnswerDraft => ({ orderNum: order, text: "" });
 const defaultQuestion = (order: number, answersCount = 3): QuestionDraft => ({
@@ -44,6 +45,7 @@ const initialDraft = (): TestDraft => ({
   type: "multi",
   description: "",
   isPublic: true,
+  bgColor: BG_COLORS[0],
   scoringMode: "majority",
   questions: [defaultQuestion(1)],
   answers: [],
@@ -54,7 +56,7 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
   const [draft, setDraft] = useState<TestDraft>(() => initialDraft());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [testId, setTestId] = useState<string | null>(null);
   const [currentSlug, setCurrentSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -65,6 +67,10 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
     [draft.results]
   );
   const showPointRanges = (draft.scoringMode ?? "majority") === "points" || hasScoreRanges || draft.questions.length > 0;
+
+  useEffect(() => {
+    if (!draft.bgColor) updateDraft("bgColor", BG_COLORS[0]);
+  }, [draft.bgColor]);
 
   const canSubmit = useMemo(() => {
     const titleOk = draft.title.trim().length > 2;
@@ -129,8 +135,7 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
     };
   }, [api, editSlug]);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submitDraft = async () => {
     if (!canSubmit || submitting) return;
     setSubmitting(true);
     setError(null);
@@ -171,6 +176,10 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
         : err?.response?.data?.detail ?? err?.message ?? "Не удалось сохранить тест";
       setError(String(message));
     } finally { setSubmitting(false); }
+  };
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await submitDraft();
   };
 
   if (loading) return <section className="card form-card"><p>Загрузка…</p></section>;
@@ -246,9 +255,33 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
           {error && <p className="error">{error}</p>}
           <footer className="actions bottom">
             <button type="button" className="secondary" onClick={() => setStep(2)} disabled={submitting}>Назад</button>
-            <button type="submit" disabled={!canSubmit || submitting}>{submitting ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}</button>
+            <button type="button" onClick={() => setStep(4)} disabled={!canSubmit || submitting}>Далее</button>
           </footer>
         </form>
+      )}
+      {step === 4 && (
+        <section className="form">
+          <h2 className="form-title">Выберите цвет фона</h2>
+          <div className="color-grid">
+            {BG_COLORS.map((c) => (
+              <button
+                key={c}
+                type="button"
+                className={`color-swatch${draft.bgColor === c ? " color-swatch--active" : ""}`}
+                style={{ background: `#${c}` }}
+                onClick={() => updateDraft("bgColor", c)}
+                aria-label={`Цвет ${c}`}
+              />
+            ))}
+          </div>
+          {error && <p className="error">{error}</p>}
+          <footer className="actions bottom">
+            <button type="button" className="secondary" onClick={() => setStep(3)} disabled={submitting}>Назад</button>
+            <button type="button" onClick={submitDraft} disabled={!canSubmit || submitting}>
+              {submitting ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}
+            </button>
+          </footer>
+        </section>
       )}
     </section>
   );
@@ -394,6 +427,7 @@ function toApiPayload(draft: TestDraft, opts?: { includeSlug?: boolean }) {
     type: "multi",
     description: draft.description,
     is_public: true,
+    bg_color: draft.bgColor || BG_COLORS[0],
     questions: draft.questions.map((q, qi) => ({
       order_num: qi + 1,
       text: q.text,
@@ -460,6 +494,7 @@ function fromApiTest(test: TestRead): TestDraft {
     type: "multi",
     description: test.description || "",
     isPublic: test.is_public,
+    bgColor: (test as any).bg_color || BG_COLORS[0],
     scoringMode,
     questions,
     answers: [],

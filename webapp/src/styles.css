@@ -151,6 +151,26 @@ button:disabled {
   font-weight: 800;
 }
 
+.color-grid {
+  display: flex;
+  gap: 12px;
+  flex-wrap: wrap;
+}
+
+.color-swatch {
+  width: 64px;
+  height: 64px;
+  border-radius: 12px;
+  border: 2px solid rgba(0, 0, 0, 0.2);
+  box-shadow: none;
+  padding: 0;
+}
+
+.color-swatch--active {
+  border-color: rgba(0, 0, 0, 0.6);
+  box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
+}
+
 /* iOS zoom fix: keep inputs at >=16px to prevent auto-zoom */
 input,
 textarea,

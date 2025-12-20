@@ -75,6 +75,7 @@ class TestBase(BaseModel):
     type: TestType
     description: str | None = None
     is_public: bool = True
+    bg_color: str | None = "3E8BBF"
 
 
 class TestCreate(TestBase):
@@ -88,6 +89,7 @@ class TestUpdate(BaseModel):
     title: str | None = None
     description: str | None = None
     is_public: bool | None = None
+    bg_color: str | None = None
     questions: list[QuestionCreate] | None = None
     answers: list[AnswerCreate] | None = None
     results: list[ResultCreate] | None = None

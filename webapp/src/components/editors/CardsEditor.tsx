@@ -9,6 +9,7 @@ type Props = { api: AxiosInstance; onClose: () => void; editSlug?: string };
 
 const defaultAnswer = (order: number): AnswerDraft => ({ orderNum: order, text: "" });
 const defaultResult = (): ResultDraft => ({ title: "Результат", description: "", minScore: null, maxScore: null });
+const BG_COLORS = ["3E8BBF", "ED7AC3", "73C363", "9A7071"];
 
 const initialDraft = (): TestDraft => ({
   slug: "",
@@ -16,6 +17,7 @@ const initialDraft = (): TestDraft => ({
   type: "cards",
   description: "",
   isPublic: true,
+  bgColor: BG_COLORS[0],
   questions: [],
   answers: [defaultAnswer(1), defaultAnswer(2)],
   results: [defaultResult()],
@@ -25,7 +27,7 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
   const [draft, setDraft] = useState<TestDraft>(() => initialDraft());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<1 | 2>(1);
+  const [step, setStep] = useState<1 | 2 | 3>(1);
   const [mode, setMode] = useState<"open" | "closed">("closed");
   const [uploadDebug, setUploadDebug] = useState<any | null>(null);
   const [testId, setTestId] = useState<string | null>(null);
@@ -68,6 +70,7 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
           type: "cards",
           description,
           isPublic: data.is_public,
+          bgColor: (data as any).bg_color || BG_COLORS[0],
           questions: [],
           answers: mapAnswersFromApi(data),
           results: (data.results || []).map((r) => ({
@@ -95,8 +98,7 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
     };
   }, [api, editSlug]);
 
-  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
-    event.preventDefault();
+  const submitDraft = async () => {
     if (!canSubmit || submitting) return;
     setSubmitting(true);
     setError(null);
@@ -134,6 +136,10 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
         : err?.response?.data?.detail ?? err?.message ?? "Не удалось сохранить тест";
       setError(String(message));
     } finally { setSubmitting(false); }
+  };
+  const handleSubmit = async (event: FormEvent<HTMLFormElement>) => {
+    event.preventDefault();
+    await submitDraft();
   };
 
   // Step 1 — Название и вопрос (используем description как текст вопроса/подсказки)
@@ -188,7 +194,7 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
   }
 
   // Step 2 — Карты
-  return (
+  if (step === 2) return (
     <section className="card form-card">
       <form className="form" onSubmit={handleSubmit}>
         <h2 className="form-title form-title--tight">Карты</h2>
@@ -196,7 +202,7 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
         {error && <p className="error">{error}</p>}
         <footer className="actions bottom">
           <button type="button" className="secondary" onClick={() => setStep(1)} disabled={submitting}>Назад</button>
-          <button type="submit" disabled={!canSubmit || submitting}>{submitting ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}</button>
+          <button type="button" onClick={() => setStep(3)} disabled={!canSubmit || submitting}>Далее</button>
         </footer>
       </form>
       {uploadDebug && (
@@ -205,6 +211,30 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
           <div className="debug-panel__content">{JSON.stringify(uploadDebug, null, 2)}</div>
         </details>
       )}
+    </section>
+  );
+  return (
+    <section className="card form-card">
+      <h2 className="form-title">Выберите цвет фона</h2>
+      <div className="color-grid">
+        {BG_COLORS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            className={`color-swatch${draft.bgColor === c ? " color-swatch--active" : ""}`}
+            style={{ background: `#${c}` }}
+            onClick={() => updateDraft("bgColor", c)}
+            aria-label={`Цвет ${c}`}
+          />
+        ))}
+      </div>
+      {error && <p className="error">{error}</p>}
+      <footer className="actions bottom">
+        <button type="button" className="secondary" onClick={() => setStep(2)} disabled={submitting}>Назад</button>
+        <button type="button" disabled={submitting} onClick={submitDraft}>
+          {submitting ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}
+        </button>
+      </footer>
     </section>
   );
 }
@@ -363,6 +393,7 @@ function toApiPayload(draft: TestDraft, mode: "open" | "closed", opts?: { includ
     // encode display mode in description prefix: [open] or [closed]
     description: `[${mode}] ` + (draft.description || ""),
     is_public: draft.isPublic,
+    bg_color: draft.bgColor || BG_COLORS[0],
     questions: [],
     answers: draft.answers.map((a, idx) => ({
       order_num: idx + 1,

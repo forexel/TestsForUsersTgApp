@@ -29,6 +29,7 @@ type TestRead = {
   description?: string | null;
   questions: Question[];
   answers: Answer[];
+  bg_color?: string | null;
 };
 
 export default function ResultPage({ api, slug, answerId }: { api: AxiosInstance; slug: string; answerId: string }) {
@@ -48,13 +49,21 @@ export default function ResultPage({ api, slug, answerId }: { api: AxiosInstance
       } catch {}
     };
   }, []);
+  useEffect(() => {
+    const raw = test?.bg_color || "3E8BBF";
+    const clean = String(raw).replace(/^#/, "");
+    try {
+      document.documentElement.style.setProperty("--tp-bg", `#${clean}`);
+      document.body.style.setProperty("--tp-bg", `#${clean}`);
+    } catch {}
+  }, [test?.bg_color]);
 
   useEffect(() => {
     let mounted = true;
     setLoading(true);
     setError(null);
     api
-      .get(`/tests/slug/${encodeURIComponent(slug)}/public`)
+      .get(`/tests/slug/${encodeURIComponent(slug)}/public`, { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } })
       .then((res) => {
         if (mounted) setTest(res.data as TestRead);
       })

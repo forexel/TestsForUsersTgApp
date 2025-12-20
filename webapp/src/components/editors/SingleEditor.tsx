@@ -5,6 +5,7 @@ import type { TelegramUser } from "../../types/telegram";
 import type { TestRead } from "../../types/tests";
 
 type Answer = { text: string; explanationTitle?: string; explanationText?: string };
+const BG_COLORS = ["3E8BBF", "ED7AC3", "73C363", "9A7071"];
 
 export default function SingleEditor({
   api,
@@ -20,8 +21,9 @@ export default function SingleEditor({
   editSlug?: string;
 }) {
   const [title, setTitle] = useState<string>("");
-  const [step, setStep] = useState<"title" | "question">("title");
-  const [initialQA, setInitialQA] = useState<{ question?: string; answers?: Answer[] } | null>(null);
+  const [step, setStep] = useState<"title" | "question" | "color">("title");
+  const [qa, setQa] = useState<{ question: string; answers: Answer[] }>({ question: "", answers: [{ text: "" }, { text: "" }] });
+  const [bgColor, setBgColor] = useState<string>(BG_COLORS[0]);
   const [testId, setTestId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -45,14 +47,16 @@ export default function SingleEditor({
         }
         setTestId(data.id);
         setTitle(data.title);
-        setInitialQA({
+        const nextQa = {
           question: data.questions?.[0]?.text ?? "",
           answers: (data.questions?.[0]?.answers || []).map((a) => ({
             text: a.text || "",
             explanationTitle: a.explanation_title || undefined,
             explanationText: a.explanation_text || undefined,
           })),
-        });
+        };
+        setQa(nextQa.answers.length ? nextQa : { question: "", answers: [{ text: "" }, { text: "" }] });
+        setBgColor((data as any).bg_color || BG_COLORS[0]);
         setStep("question");
       })
       .catch((err: any) => {
@@ -69,20 +73,27 @@ export default function SingleEditor({
   }, [api, editSlug]);
 
   const save = async (data: { question: string; answers: Answer[] }) => {
+    const cleanQuestion = data.question.trim();
+    const cleanAnswers = data.answers.map((a) => ({
+      text: (a.text || "").trim(),
+      explanationTitle: a.explanationTitle,
+      explanationText: a.explanationText,
+    }));
     const payload = {
       title,
       type: "single" as const,
       description: "",
       is_public: true,
+      bg_color: bgColor,
       questions: [
         {
           order_num: 1,
-          text: data.question,
+          text: cleanQuestion,
           answers: data.answers.map((a, idx) => ({
             order_num: idx + 1,
-            text: a.text,
-            explanation_title: a.explanationTitle,
-            explanation_text: a.explanationText,
+            text: cleanAnswers[idx].text,
+            explanation_title: cleanAnswers[idx].explanationTitle,
+            explanation_text: cleanAnswers[idx].explanationText,
           })),
         },
       ],
@@ -139,15 +150,26 @@ export default function SingleEditor({
   if (step === "title") {
     return <TitleStep initial={title} onNext={(val) => { setTitle(val); setStep("question"); }} onBack={onClose} />;
   }
+  if (step === "question") {
+    return (
+      <QuestionStep
+        value={qa}
+        onChange={setQa}
+        submitting={submitting}
+        error={submitError}
+        onNext={() => setStep("color")}
+        onBack={() => setStep("title")}
+      />
+    );
+  }
   return (
-    <QuestionStep
-      title={title}
-      initial={initialQA ?? undefined}
-      mode={isEdit ? "edit" : "create"}
+    <ColorStep
+      value={bgColor}
+      onChange={setBgColor}
       submitting={submitting}
-      error={submitError}
-      onSubmit={save}
-      onBack={() => setStep("title")}
+      onBack={() => setStep("question")}
+      onSubmit={() => save({ question: qa.question, answers: qa.answers })}
+      mode={isEdit ? "edit" : "create"}
     />
   );
 }
@@ -168,31 +190,26 @@ function TitleStep({ initial = "", onNext, onBack }: { initial?: string; onNext:
 }
 
 function QuestionStep({
-  title,
-  initial,
-  onSubmit,
+  value,
+  onChange,
+  onNext,
   onBack,
-  mode,
   submitting,
   error,
 }: {
-  title: string;
-  initial?: { question?: string; answers?: Answer[] };
-  onSubmit: (data: { question: string; answers: Answer[] }) => void;
+  value: { question: string; answers: Answer[] };
+  onChange: (data: { question: string; answers: Answer[] }) => void;
+  onNext: () => void;
   onBack: () => void;
-  mode: "create" | "edit";
   submitting: boolean;
   error: string | null;
 }) {
-  const [question, setQuestion] = useState(initial?.question ?? "");
-  const [answers, setAnswers] = useState<Answer[]>(initial?.answers?.length ? initial!.answers : [{ text: "" }, { text: "" }]);
-  useEffect(() => {
-    if (!initial) return;
-    setQuestion(initial.question ?? "");
-    if (initial.answers?.length) setAnswers(initial.answers);
-  }, [initial?.question, initial?.answers]);
-  const addAnswer = () => setAnswers((a) => [...a, { text: "" }]);
-  const setAns = (i: number, patch: Partial<Answer>) => setAnswers((a) => a.map((it, idx) => (idx === i ? { ...it, ...patch } : it)));
+  const question = value.question;
+  const answers = value.answers;
+  const addAnswer = () => onChange({ ...value, answers: [...answers, { text: "" }] });
+  const setAns = (i: number, patch: Partial<Answer>) =>
+    onChange({ ...value, answers: answers.map((it, idx) => (idx === i ? { ...it, ...patch } : it)) });
+  const setQuestion = (next: string) => onChange({ ...value, question: next });
   const valid = question.trim().length > 0 && answers.length >= 2 && answers.every((a) => a.text.trim().length > 0);
   return (
     <section className="card">
@@ -212,22 +229,49 @@ function QuestionStep({
       </div>
       <div className="actions bottom">
         <button className="secondary" type="button" onClick={onBack}>Назад</button>
-        <button
-          type="button"
-          disabled={!valid || submitting}
-          onClick={() => onSubmit({
-            question: question.trim(),
-            answers: answers.map(a => ({
-              text: a.text.trim(),
-              explanationTitle: a.explanationTitle,
-              explanationText: a.explanationText,
-            })),
-          })}
-        >
+        <button type="button" disabled={!valid || submitting} onClick={onNext}>Далее</button>
+      </div>
+      {error && <p className="error">{error}</p>}
+    </section>
+  );
+}
+
+function ColorStep({
+  value,
+  onChange,
+  onBack,
+  onSubmit,
+  submitting,
+  mode,
+}: {
+  value: string;
+  onChange: (color: string) => void;
+  onBack: () => void;
+  onSubmit: () => void;
+  submitting: boolean;
+  mode: "create" | "edit";
+}) {
+  return (
+    <section className="card form-card">
+      <h2 className="form-title">Выберите цвет фона</h2>
+      <div className="color-grid">
+        {BG_COLORS.map((c) => (
+          <button
+            key={c}
+            type="button"
+            className={`color-swatch${value === c ? " color-swatch--active" : ""}`}
+            style={{ background: `#${c}` }}
+            onClick={() => onChange(c)}
+            aria-label={`Цвет ${c}`}
+          />
+        ))}
+      </div>
+      <div className="actions bottom">
+        <button className="secondary" type="button" onClick={onBack}>Назад</button>
+        <button type="button" disabled={submitting} onClick={onSubmit}>
           {submitting ? "Сохранение..." : mode === "edit" ? "Сохранить" : "Создать"}
         </button>
       </div>
-      {error && <p className="error">{error}</p>}
     </section>
   );
 }

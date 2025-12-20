@@ -5,7 +5,7 @@
 
 /* Синий фон для экранов теста */
 .tp-wrap {
-  background: #5b8bb5;
+  background: var(--tp-bg, #5b8bb5);
   padding: 0;
   margin: 0;
   border-radius: 0;
@@ -52,7 +52,7 @@
 }
 
 .tp-header {
-  background: #5b8bb5;
+  background: var(--tp-bg, #5b8bb5);
   color: #fff;
   padding: 16px 20px;
   margin: 0;
@@ -77,7 +77,31 @@
   font-size: 18px;
 }
 
-.tp-radio { display: flex; align-items: center; gap: 10px; margin: 8px 0; }
+.tp-options {
+  display: flex;
+  flex-direction: column;
+  gap: 10px;
+}
+.tp-option {
+  width: 100%;
+  background: transparent !important;
+  border: 2px solid rgba(0, 0, 0, 0.26);
+  border-radius: 12px;
+  padding: 10px 12px;
+  text-align: center;
+  color: #111;
+  font-weight: 600;
+  font-size: 16px;
+  line-height: 1.2;
+  box-shadow: none;
+}
+.tp-option:active {
+  transform: translateY(1px);
+}
+.tp-option--selected {
+  border-color: rgba(0, 0, 0, 0.73);
+  box-shadow: 2px -2px 0 rgba(0, 0, 0, 0.73);
+}
 .tp-btn {
   width: 100%;
   border-radius: 20px;
@@ -96,8 +120,8 @@
 .tp-close { width: 60%; margin: 12px auto 0; display: block; border-radius: 20px; }
 
 /* --- Cards Runner full-screen look --- */
- .tp-screen {
-  background: #5b8bb5;
+.tp-screen {
+  background: var(--tp-bg, #5b8bb5);
   padding: 0;
   border-radius: 0;
   min-height: 100vh;
@@ -230,13 +254,13 @@
 }
 
 /* Надёжно убираем любые внешние зазоры вокруг панели */
-.tp-wrap { padding: 0 !important; margin: 0 !important; background: #5b8bb5 !important; }
+.tp-wrap { padding: 0 !important; margin: 0 !important; background: var(--tp-bg, #5b8bb5) !important; }
 .tp-card { padding: 0 !important; margin: 0 !important; background: transparent !important; box-shadow: none !important; border: 0 !important; }
 
 
 /* Глобальный фон только когда активна страница теста (класс вешаем на <html> и <body>) */
 html.tp-blue, body.tp-blue, :root.tp-blue {
-  background: #5b8bb5 !important;
+  background: var(--tp-bg, #5b8bb5) !important;
 }
 
 .question-label {

@@ -35,6 +35,7 @@ type TestRead = {
   questions: Question[];
   answers: Answer[];
   results?: Array<{ id: string; title: string; description?: string | null; min_score?: number | null; max_score?: number | null }>;
+  bg_color?: string | null;
 };
 
 export default function TestPage({ api, slug }: { api: AxiosInstance; slug: string }) {
@@ -51,6 +52,14 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
       } catch {}
     };
   }, []);
+  useEffect(() => {
+    const raw = test?.bg_color || "3E8BBF";
+    const clean = String(raw).replace(/^#/, "");
+    try {
+      document.documentElement.style.setProperty("--tp-bg", `#${clean}`);
+      document.body.style.setProperty("--tp-bg", `#${clean}`);
+    } catch {}
+  }, [test?.bg_color]);
   const apiBase = (api as any)?.defaults?.baseURL || '';
   log('TestPage mount: slug=', slug, ' apiBase=', apiBase);
   const [test, setTest] = useState<TestRead | null>(null);
@@ -130,17 +139,18 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
           <div className="tp-panel__content">
             <div className="tp-step">{`Вопрос 1/1`}</div>
             <h3 className="tp-question-title">{q.text}</h3>
-              {q.answers.map((a) => (
-                <label key={a.id} className="tp-radio">
-                  <input
-                    type="radio"
-                    name="answer"
-                    checked={picked === a.id}
-                    onChange={() => setPicked(a.id)}
-                  />
-                  <span>{a.text}</span>
-                </label>
-              ))}
+              <div className="tp-options">
+                {q.answers.map((a) => (
+                  <button
+                    key={a.id}
+                    type="button"
+                    className={`tp-option${picked === a.id ? " tp-option--selected" : ""}`}
+                    onClick={() => setPicked(a.id)}
+                  >
+                    {a.text}
+                  </button>
+                ))}
+              </div>
               <button
                 type="button"
                 className="tp-btn"
@@ -317,17 +327,18 @@ function MultiRunner({ test, onResultReady }: { test: TestRead; onResultReady?: 
           <div style={{ padding: 18 }}>
             <div className="tp-step">{`Вопрос ${index + 1}/${questions.length}`}</div>
             <h3 className="tp-question-title">{current.text}</h3>
-            {current.answers.map((a) => (
-              <label key={a.id} className="tp-radio">
-                <input
-                  type="radio"
-                  name={`answer_${current.id}`}
-                  checked={picked === a.id}
-                  onChange={() => setSelected(prev => ({ ...prev, [current.id]: a.id }))}
-                />
-                <span>{a.text}</span>
-              </label>
-            ))}
+            <div className="tp-options">
+              {current.answers.map((a) => (
+                <button
+                  key={a.id}
+                  type="button"
+                  className={`tp-option${picked === a.id ? " tp-option--selected" : ""}`}
+                  onClick={() => setSelected(prev => ({ ...prev, [current.id]: a.id }))}
+                >
+                  {a.text}
+                </button>
+              ))}
+            </div>
             <button
               type="button"
               className="tp-btn"

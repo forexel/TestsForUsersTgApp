@@ -34,6 +34,7 @@ class Test(Base):
     )
     description: Mapped[str | None] = mapped_column(Text())
     is_public: Mapped[bool] = mapped_column(Boolean(), default=True, nullable=False)
+    bg_color: Mapped[str | None] = mapped_column(String(16), default="3E8BBF")
     created_by: Mapped[int] = mapped_column(BigInteger(), nullable=False)
     created_by_username: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(

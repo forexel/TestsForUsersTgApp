@@ -32,6 +32,7 @@ export interface TestRead {
   type: TestType;
   description?: string | null;
   is_public: boolean;
+  bg_color?: string | null;
   created_by: number;
   created_by_username?: string | null;
   questions: QuestionRead[];
