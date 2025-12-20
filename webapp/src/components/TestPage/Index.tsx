@@ -35,7 +35,7 @@ type TestRead = {
   description?: string | null;
   questions: Question[];
   answers: Answer[];
-  results?: Array<{ id: string; title: string; description?: string | null; min_score?: number | null; max_score?: number | null }>;
+  results?: Array<{ id: string; title: string; description?: string | null; image_url?: string | null; min_score?: number | null; max_score?: number | null }>;
   bg_color?: string | null;
 };
 
@@ -275,7 +275,7 @@ function MultiRunner({ test, onResultReady }: { test: TestRead; onResultReady?: 
     return anyRange;
   }, [test]);
 
-  const computeResult = (): { title: string; description?: string } | null => {
+  const computeResult = (): { title: string; description?: string; imageUrl?: string | null } | null => {
     if (!questions.length) return null;
     const picks = questions.map((q) => {
       const aId = selected[q.id];
@@ -293,9 +293,9 @@ function MultiRunner({ test, onResultReady }: { test: TestRead; onResultReady?: 
         if (min === null || max === null) return false;
         return total >= min && total <= max;
       });
-      if (ranged) return { title: ranged.title, description: ranged.description || undefined };
+      if (ranged) return { title: ranged.title, description: ranged.description || undefined, imageUrl: ranged.image_url };
       const fallback = results[0] || results[results.length - 1];
-      return fallback ? { title: fallback.title, description: fallback.description || undefined } : null;
+      return fallback ? { title: fallback.title, description: fallback.description || undefined, imageUrl: fallback.image_url } : null;
     } else {
       const counts: Record<number, number> = {};
       picks.forEach(p => { counts[p.order] = (counts[p.order] || 0) + 1; });
@@ -307,7 +307,7 @@ function MultiRunner({ test, onResultReady }: { test: TestRead; onResultReady?: 
       });
       const idx = Math.max(0, Math.min((results.length || answersCount) - 1, bestOrder - 1));
       const res = results[idx];
-      if (res) return { title: res.title, description: res.description || undefined };
+      if (res) return { title: res.title, description: res.description || undefined, imageUrl: res.image_url };
       const a = questions[0]?.answers?.[bestOrder - 1];
       if (a?.explanation_title || a?.explanation_text) {
         return { title: a.explanation_title || "Результат", description: a.explanation_text || undefined };
@@ -367,6 +367,7 @@ function MultiRunner({ test, onResultReady }: { test: TestRead; onResultReady?: 
         <div style={{ padding: 18 }}>
           {result ? (
             <>
+              {result.imageUrl && <img className="tp-result-image" src={result.imageUrl} alt="result" />}
               <div className="tp-result-title">{result.title}</div>
               <div className="tp-result-box"><p style={{ margin: 0 }}>{result.description || ""}</p></div>
             </>

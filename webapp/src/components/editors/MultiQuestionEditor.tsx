@@ -426,6 +426,34 @@ function ResultList({
   const update = (i: number, v: ResultDraft) => onChange("results", results.map((r, idx) => (idx === i ? v : r)));
   const add = () => onChange("results", [...results, defaultResult()]);
   const remove = (i: number) => onChange("results", results.filter((_, idx) => idx !== i).length ? results.filter((_, idx) => idx !== i) : [defaultResult()]);
+  const [imageError, setImageError] = useState<string | null>(null);
+  const uploadResultImage = async (file: File, index: number) => {
+    setImageError(null);
+    try {
+      const processed = await compressImage(file);
+      const base = String((import.meta as any).env?.VITE_API_BASE_URL || "").replace(/\/$/, "");
+      const endpoint = `${base}/media/upload`;
+      const form = new FormData();
+      form.append("file", processed);
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" },
+        body: form,
+      });
+      if (!res.ok) {
+        setImageError("Не удалось загрузить изображение.");
+        return;
+      }
+      const data = await res.json();
+      if (!data?.url) {
+        setImageError("Не удалось получить ссылку на изображение.");
+        return;
+      }
+      update(index, { ...results[index], imageUrl: data.url });
+    } catch {
+      setImageError("Ошибка загрузки изображения.");
+    }
+  };
   return (
     <div className="editor-section">
       {results.map((r, idx) => (
@@ -435,6 +463,23 @@ function ResultList({
             {(showPointRanges && pointRanges[idx]) ? (
               <span className="label-range">{` (баллы ${pointRanges[idx].min}-${pointRanges[idx].max})`}</span>
             ) : null}
+          </label>
+          <label className="question-image-picker">
+            <input
+              type="file"
+              accept="image/*"
+              style={{ display: "none" }}
+              onChange={(e) => {
+                const file = e.target.files?.[0];
+                if (file) uploadResultImage(file, idx);
+                e.currentTarget.value = "";
+              }}
+            />
+            {r.imageUrl ? (
+              <img className="question-image-preview" src={r.imageUrl} alt="result" />
+            ) : (
+              <span className="question-image-placeholder">Добавить картинку результата</span>
+            )}
           </label>
           <input
             className="input"
@@ -464,6 +509,7 @@ function ResultList({
           )}
         </div>
       ))}
+      {imageError && <p className="error">{imageError}</p>}
       <button type="button" className="tertiary" onClick={add}>Добавить результат</button>
     </div>
   );
@@ -490,6 +536,7 @@ function toApiPayload(draft: TestDraft, opts?: { includeSlug?: boolean }) {
     results: draft.results.map((r, i) => ({
       title: r.title && r.title.trim() ? r.title : `Результат ${i + 1}`,
       description: r.description,
+      image_url: (r as any).imageUrl,
       min_score: r.minScore,
       max_score: r.maxScore,
     })),
@@ -552,6 +599,7 @@ function fromApiTest(test: TestRead): TestDraft {
       id: res.id,
       title: res.title,
       description: res.description || "",
+      imageUrl: (res as any).image_url || undefined,
       minScore: res.min_score ?? null,
       maxScore: res.max_score ?? null,
     })),

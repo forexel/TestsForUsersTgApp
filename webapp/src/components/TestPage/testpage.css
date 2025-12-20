@@ -143,6 +143,12 @@
   color: #111 !important; /* текст на кнопке чёрным */
 }
 .tp-result-title { color: #3b82f6; font-weight: 800; text-align: center; margin: 0 0 8px; }
+.tp-result-image {
+  width: 100%;
+  border-radius: 12px;
+  object-fit: cover;
+  margin-bottom: 10px;
+}
 .tp-result-box {
   background: transparent;
   border-radius: 0;
