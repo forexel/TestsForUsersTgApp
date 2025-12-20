@@ -54,6 +54,13 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
       } catch {}
     };
   }, []);
+  const apiBase = (api as any)?.defaults?.baseURL || '';
+  log('TestPage mount: slug=', slug, ' apiBase=', apiBase);
+  const [test, setTest] = useState<TestRead | null>(null);
+  const [loading, setLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [picked, setPicked] = useState<string | null>(null);
+  const logStateRef = useRef<"idle" | "pending" | "done">("idle");
   useEffect(() => {
     const raw = test?.bg_color || "3E8BBF";
     const clean = String(raw).replace(/^#/, "");
@@ -62,13 +69,6 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
       document.body.style.setProperty("--tp-bg", `#${clean}`);
     } catch {}
   }, [test?.bg_color]);
-  const apiBase = (api as any)?.defaults?.baseURL || '';
-  log('TestPage mount: slug=', slug, ' apiBase=', apiBase);
-  const [test, setTest] = useState<TestRead | null>(null);
-  const [loading, setLoading] = useState(true);
-  const [error, setError] = useState<string | null>(null);
-  const [picked, setPicked] = useState<string | null>(null);
-  const logStateRef = useRef<"idle" | "pending" | "done">("idle");
 
   const q = useMemo(() => test?.questions?.[0], [test]);
   const cleanedDescription = useMemo(() => {
