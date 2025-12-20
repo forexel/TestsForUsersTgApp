@@ -1,6 +1,7 @@
 import { useEffect, useState } from "react";
 import type { AxiosInstance } from "axios";
 import WebApp from "@twa-dev/sdk";
+import { compressImage } from "../../utils/image";
 import type { TelegramUser } from "../../types/telegram";
 import type { TestRead } from "../../types/tests";
 
@@ -22,7 +23,9 @@ export default function SingleEditor({
 }) {
   const [title, setTitle] = useState<string>("");
   const [step, setStep] = useState<"title" | "question" | "color">("title");
-  const [qa, setQa] = useState<{ question: string; answers: Answer[] }>({ question: "", answers: [{ text: "" }, { text: "" }] });
+  const [qa, setQa] = useState<{ question: string; answers: Answer[]; imageUrl?: string }>({ question: "", answers: [{ text: "" }, { text: "" }] });
+  const [imageError, setImageError] = useState<string | null>(null);
+  const [answerImageError, setAnswerImageError] = useState<string | null>(null);
   const [bgColor, setBgColor] = useState<string>(BG_COLORS[0]);
   const [testId, setTestId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
@@ -49,6 +52,7 @@ export default function SingleEditor({
         setTitle(data.title);
         const nextQa = {
           question: data.questions?.[0]?.text ?? "",
+          imageUrl: (data.questions?.[0] as any)?.image_url || undefined,
           answers: (data.questions?.[0]?.answers || []).map((a) => ({
             text: a.text || "",
             explanationTitle: a.explanation_title || undefined,
@@ -72,12 +76,13 @@ export default function SingleEditor({
     };
   }, [api, editSlug]);
 
-  const save = async (data: { question: string; answers: Answer[] }) => {
+  const save = async (data: { question: string; answers: Answer[]; imageUrl?: string }) => {
     const cleanQuestion = data.question.trim();
     const cleanAnswers = data.answers.map((a) => ({
       text: (a.text || "").trim(),
       explanationTitle: a.explanationTitle,
       explanationText: a.explanationText,
+      imageUrl: (a as any).imageUrl,
     }));
     const payload = {
       title,
@@ -89,9 +94,11 @@ export default function SingleEditor({
         {
           order_num: 1,
           text: cleanQuestion,
+          image_url: data.imageUrl || null,
           answers: data.answers.map((a, idx) => ({
             order_num: idx + 1,
             text: cleanAnswers[idx].text,
+            image_url: cleanAnswers[idx].imageUrl,
             explanation_title: cleanAnswers[idx].explanationTitle,
             explanation_text: cleanAnswers[idx].explanationText,
           })),
@@ -155,6 +162,10 @@ export default function SingleEditor({
       <QuestionStep
         value={qa}
         onChange={setQa}
+        imageError={imageError}
+        onImageError={setImageError}
+        answerImageError={answerImageError}
+        onAnswerImageError={setAnswerImageError}
         submitting={submitting}
         error={submitError}
         onNext={() => setStep("color")}
@@ -168,7 +179,7 @@ export default function SingleEditor({
       onChange={setBgColor}
       submitting={submitting}
       onBack={() => setStep("question")}
-      onSubmit={() => save({ question: qa.question, answers: qa.answers })}
+      onSubmit={() => save({ question: qa.question, answers: qa.answers, imageUrl: qa.imageUrl })}
       mode={isEdit ? "edit" : "create"}
     />
   );
@@ -192,13 +203,21 @@ function TitleStep({ initial = "", onNext, onBack }: { initial?: string; onNext:
 function QuestionStep({
   value,
   onChange,
+  imageError,
+  onImageError,
+  answerImageError,
+  onAnswerImageError,
   onNext,
   onBack,
   submitting,
   error,
 }: {
-  value: { question: string; answers: Answer[] };
-  onChange: (data: { question: string; answers: Answer[] }) => void;
+  value: { question: string; answers: Answer[]; imageUrl?: string };
+  onChange: (data: { question: string; answers: Answer[]; imageUrl?: string }) => void;
+  imageError: string | null;
+  onImageError: (val: string | null) => void;
+  answerImageError: string | null;
+  onAnswerImageError: (val: string | null) => void;
   onNext: () => void;
   onBack: () => void;
   submitting: boolean;
@@ -206,24 +225,137 @@ function QuestionStep({
 }) {
   const question = value.question;
   const answers = value.answers;
+  const imageUrl = (value as any).imageUrl as string | undefined;
   const addAnswer = () => onChange({ ...value, answers: [...answers, { text: "" }] });
   const setAns = (i: number, patch: Partial<Answer>) =>
     onChange({ ...value, answers: answers.map((it, idx) => (idx === i ? { ...it, ...patch } : it)) });
   const setQuestion = (next: string) => onChange({ ...value, question: next });
+  const uploadImage = async (file: File) => {
+    onImageError(null);
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+        img.onload = () => resolve({ w: img.width, h: img.height });
+        img.onerror = () => reject(new Error("bad image"));
+        img.src = url;
+      });
+      if (dims.w < dims.h) {
+        onImageError("Разрешены только изображения, где ширина больше или равна высоте.");
+        return;
+      }
+    } catch {
+      onImageError("Не удалось прочитать изображение.");
+      return;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+    try {
+      const base = String((import.meta as any).env?.VITE_API_BASE_URL || "").replace(/\/$/, "");
+      const endpoint = `${base}/media/upload`;
+      const processed = await compressImage(file);
+      const form = new FormData();
+      form.append("file", processed);
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" },
+        body: form,
+      });
+      if (!res.ok) {
+        onImageError("Не удалось загрузить изображение.");
+        return;
+      }
+      const data = await res.json();
+      if (!data?.url) {
+        onImageError("Не удалось получить ссылку на изображение.");
+        return;
+      }
+      onChange({ ...value, imageUrl: data.url });
+    } catch {
+      onImageError("Ошибка загрузки изображения.");
+    }
+  };
   const valid = question.trim().length > 0 && answers.length >= 2 && answers.every((a) => a.text.trim().length > 0);
+  const uploadAnswerImage = async (file: File, idx: number) => {
+    onAnswerImageError(null);
+    try {
+      const processed = await compressImage(file);
+      const base = String((import.meta as any).env?.VITE_API_BASE_URL || "").replace(/\/$/, "");
+      const endpoint = `${base}/media/upload`;
+      const form = new FormData();
+      form.append("file", processed);
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" },
+        body: form,
+      });
+      if (!res.ok) {
+        onAnswerImageError("Не удалось загрузить изображение.");
+        return;
+      }
+      const data = await res.json();
+      if (!data?.url) {
+        onAnswerImageError("Не удалось получить ссылку на изображение.");
+        return;
+      }
+      const next = answers.map((a, i) => (i === idx ? { ...a, imageUrl: data.url } : a));
+      onChange({ ...value, answers: next });
+    } catch {
+      onAnswerImageError("Ошибка загрузки изображения.");
+    }
+  };
   return (
     <section className="card">
       <h2 className="selector-title">Вопрос и ответы</h2>
+      <div className="question-label__header" style={{ justifyContent: "space-between" }}>
+        <label className="label" style={{ margin: 0 }}>Картинка вопроса</label>
+        <label className="attach-btn" title="Добавить картинку">
+          <input
+            type="file"
+            accept="image/*"
+            style={{ display: "none" }}
+            onChange={(e) => {
+              const file = e.target.files?.[0];
+              if (file) uploadImage(file);
+              e.currentTarget.value = "";
+            }}
+          />
+          <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+            <path d="M7 13.5l7.1-7.1a3 3 0 114.2 4.2l-8.5 8.5a5 5 0 11-7.1-7.1l9.2-9.2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+          </svg>
+        </label>
+      </div>
+      {imageUrl && <img className="question-image-preview" src={imageUrl} alt="question" />}
+      {imageError && <p className="error">{imageError}</p>}
       <label className="label">Вопрос</label>
       <input className="input" placeholder="Введите вопрос" value={question} onChange={(e) => setQuestion(e.target.value)} />
       {answers.map((a, i) => (
         <div key={i} style={{ marginTop: 16 }}>
-          <div className="label">Ответ {i + 1}</div>
+          <div className="answer-label-row">
+            <div className="label">Ответ {i + 1}</div>
+            <label className="attach-btn" title="Добавить картинку">
+              <input
+                type="file"
+                accept="image/*"
+                style={{ display: "none" }}
+                onChange={(e) => {
+                  const file = e.target.files?.[0];
+                  if (file) uploadAnswerImage(file, i);
+                  e.currentTarget.value = "";
+                }}
+              />
+              <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                <path d="M7 13.5l7.1-7.1a3 3 0 114.2 4.2l-8.5 8.5a5 5 0 11-7.1-7.1l9.2-9.2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+              </svg>
+            </label>
+          </div>
           <input className="input" placeholder="Введите ответ" value={a.text} onChange={(e) => setAns(i, { text: e.target.value })} />
+          {(a as any).imageUrl && <img className="answer-image-preview" src={(a as any).imageUrl} alt="answer" />}
           <input className="input" placeholder="Заголовок расшифровки" value={a.explanationTitle ?? ""} onChange={(e) => setAns(i, { explanationTitle: e.target.value })} style={{ marginTop: 8 }} />
           <textarea className="textarea" placeholder="Введите расшифровку ответа теста" value={a.explanationText ?? ""} onChange={(e) => setAns(i, { explanationText: e.target.value })} rows={4} style={{ marginTop: 8 }} />
         </div>
       ))}
+      {answerImageError && <p className="error">{answerImageError}</p>}
       <div style={{ display: "flex", justifyContent: "center", marginTop: 16 }}>
         <button type="button" className="secondary" onClick={addAnswer}>+ Ответ</button>
       </div>

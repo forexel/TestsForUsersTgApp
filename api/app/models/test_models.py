@@ -68,6 +68,7 @@ class Question(Base):
     test_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("tests.id", ondelete="CASCADE"), nullable=False)
     order_num: Mapped[int] = mapped_column(Integer(), nullable=False)
     text: Mapped[str] = mapped_column(Text(), nullable=False)
+    image_url: Mapped[str | None] = mapped_column(Text())
 
     test: Mapped[Test] = relationship("Test", back_populates="questions")
     answers: Mapped[list[Answer]] = relationship(

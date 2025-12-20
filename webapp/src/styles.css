@@ -171,6 +171,58 @@ button:disabled {
   box-shadow: 2px 2px 0 rgba(0, 0, 0, 0.3);
 }
 
+.question-label__header {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 12px;
+}
+
+.attach-btn {
+  display: inline-flex;
+  align-items: center;
+  justify-content: center;
+  width: 32px;
+  height: 32px;
+  border-radius: 8px;
+  border: 1px solid rgba(15, 23, 42, 0.2);
+  background: transparent;
+  color: #1f2a37;
+  cursor: pointer;
+}
+.attach-btn:active {
+  transform: translateY(1px);
+}
+
+.question-image-preview {
+  width: 100%;
+  border-radius: 10px;
+  object-fit: cover;
+  display: block;
+}
+
+.answer-label-row {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: 10px;
+}
+
+.answer-image-preview {
+  width: 100%;
+  border-radius: 10px;
+  object-fit: cover;
+  display: block;
+  margin-top: 8px;
+}
+
+.answer-attach {
+  display: flex;
+  align-items: center;
+  gap: 10px;
+  margin-top: 8px;
+}
+
 /* iOS zoom fix: keep inputs at >=16px to prevent auto-zoom */
 input,
 textarea,

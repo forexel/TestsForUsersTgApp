@@ -19,11 +19,13 @@ type Answer = {
   text: string;
   explanation_title?: string | null;
   explanation_text?: string | null;
+  image_url?: string | null;
 };
 type Question = {
   id: string;
   order_num: number;
   text: string;
+  image_url?: string | null;
   answers: Answer[];
 };
 type TestRead = {
@@ -138,6 +140,7 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
           <div className="tp-panel">
           <div className="tp-panel__content">
             <div className="tp-step">{`Вопрос 1/1`}</div>
+            {q.image_url && <img className="tp-question-image" src={q.image_url} alt="question" />}
             <h3 className="tp-question-title">{q.text}</h3>
               <div className="tp-options">
                 {q.answers.map((a) => (
@@ -147,6 +150,7 @@ export default function TestPage({ api, slug }: { api: AxiosInstance; slug: stri
                     className={`tp-option${picked === a.id ? " tp-option--selected" : ""}`}
                     onClick={() => setPicked(a.id)}
                   >
+                    {a.image_url && <img className="tp-option-image" src={a.image_url} alt="answer" />}
                     {a.text}
                   </button>
                 ))}
@@ -326,6 +330,7 @@ function MultiRunner({ test, onResultReady }: { test: TestRead; onResultReady?: 
         <div className="tp-panel">
           <div style={{ padding: 18 }}>
             <div className="tp-step">{`Вопрос ${index + 1}/${questions.length}`}</div>
+            {current.image_url && <img className="tp-question-image" src={current.image_url} alt="question" />}
             <h3 className="tp-question-title">{current.text}</h3>
             <div className="tp-options">
               {current.answers.map((a) => (
@@ -335,6 +340,7 @@ function MultiRunner({ test, onResultReady }: { test: TestRead; onResultReady?: 
                   className={`tp-option${picked === a.id ? " tp-option--selected" : ""}`}
                   onClick={() => setSelected(prev => ({ ...prev, [current.id]: a.id }))}
                 >
+                  {a.image_url && <img className="tp-option-image" src={a.image_url} alt="answer" />}
                   {a.text}
                 </button>
               ))}

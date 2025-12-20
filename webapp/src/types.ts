@@ -29,6 +29,7 @@ export interface QuestionDraft {
   id?: string;
   orderNum: number;
   text: string;
+  imageUrl?: string;
   answers: AnswerDraft[];
 }
 

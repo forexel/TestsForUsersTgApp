@@ -1,6 +1,7 @@
 import { FormEvent, useEffect, useMemo, useState } from "react";
 import type { AxiosInstance } from "axios";
 import WebApp from "@twa-dev/sdk";
+import { compressImage } from "../../utils/image";
 
 import { AnswerDraft, QuestionDraft, ResultDraft, TestDraft, ScoringMode } from "../../types";
 import type { TestRead } from "../../types/tests";
@@ -11,7 +12,7 @@ const STORAGE_KEY = "multi_draft_v1";
 const BG_COLORS = ["3E8BBF", "ED7AC3", "73C363", "9A7071"];
 
 const defaultAnswer = (order: number): AnswerDraft => ({ orderNum: order, text: "" });
-const defaultQuestion = (order: number, answersCount = 3): QuestionDraft => ({
+const defaultQuestion = (order: number, answersCount = 2): QuestionDraft => ({
   orderNum: order,
   text: "",
   answers: Array.from({ length: answersCount }, (_, i) => defaultAnswer(i + 1)),
@@ -298,20 +299,87 @@ function QuestionList({ draft, onChange }: { draft: TestDraft; onChange: <K exte
     const count = questions[0]?.answers?.length || 3;
     onChange("questions", [...questions, defaultQuestion(questions.length + 1, count)]);
   };
+  const [uploadError, setUploadError] = useState<string | null>(null);
+  const uploadQuestionImage = async (file: File, index: number) => {
+    setUploadError(null);
+    const url = URL.createObjectURL(file);
+    try {
+      const img = new Image();
+      const dims = await new Promise<{ w: number; h: number }>((resolve, reject) => {
+        img.onload = () => resolve({ w: img.width, h: img.height });
+        img.onerror = () => reject(new Error("Неверное изображение"));
+        img.src = url;
+      });
+      if (dims.w < dims.h) {
+        setUploadError("Разрешены только изображения, где ширина больше или равна высоте.");
+        return;
+      }
+    } catch {
+      setUploadError("Не удалось прочитать изображение.");
+      return;
+    } finally {
+      URL.revokeObjectURL(url);
+    }
+    try {
+      const base = String((import.meta as any).env?.VITE_API_BASE_URL || "").replace(/\/$/, "");
+      const endpoint = `${base}/media/upload`;
+      const processed = await compressImage(file);
+      const form = new FormData();
+      form.append("file", processed);
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" },
+        body: form,
+      });
+      if (!res.ok) {
+        setUploadError("Не удалось загрузить изображение.");
+        return;
+      }
+      const data = await res.json();
+      if (!data?.url) {
+        setUploadError("Не удалось получить ссылку на изображение.");
+        return;
+      }
+      const q = questions[index];
+      updateQuestion(index, { ...q, imageUrl: data.url });
+    } catch {
+      setUploadError("Ошибка загрузки изображения.");
+    }
+  };
   return (
     <div className="editor-section">
       <h3>Вопросы</h3>
       {questions.map((q, idx) => (
         <div key={idx} className="editor-block">
-          <label className="question-label">
-            <span className="question-label__title">Вопрос {idx + 1}</span>
+          <div className="question-label">
+            <div className="question-label__header">
+              <span className="question-label__title">Вопрос {idx + 1}</span>
+              <label className="attach-btn" title="Добавить картинку">
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadQuestionImage(file, idx);
+                    e.currentTarget.value = "";
+                  }}
+                />
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 13.5l7.1-7.1a3 3 0 114.2 4.2l-8.5 8.5a5 5 0 11-7.1-7.1l9.2-9.2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </label>
+            </div>
             <textarea
               required
               placeholder="Введите текст вопроса"
               value={q.text}
               onChange={(e) => updateQuestion(idx, { ...q, text: e.target.value })}
             />
-          </label>
+          </div>
+          {q.imageUrl && (
+            <img className="question-image-preview" src={q.imageUrl} alt="question" />
+          )}
           <AnswerList
             answers={q.answers}
             onChange={(answers) => {
@@ -333,6 +401,7 @@ function QuestionList({ draft, onChange }: { draft: TestDraft; onChange: <K exte
           />
         </div>
       ))}
+      {uploadError && <p className="error">{uploadError}</p>}
       <button type="button" className="tertiary" onClick={addQuestion}>Добавить вопрос</button>
     </div>
   );
@@ -343,6 +412,34 @@ function AnswerList({ answers, onChange }: { answers: AnswerDraft[]; onChange: (
     const next = [...answers];
     next[index] = value;
     onChange(next.map((item, idx) => ({ ...item, orderNum: idx + 1 })));
+  };
+  const [imageError, setImageError] = useState<string | null>(null);
+  const uploadAnswerImage = async (file: File, index: number) => {
+    setImageError(null);
+    try {
+      const processed = await compressImage(file);
+      const base = String((import.meta as any).env?.VITE_API_BASE_URL || "").replace(/\/$/, "");
+      const endpoint = `${base}/media/upload`;
+      const form = new FormData();
+      form.append("file", processed);
+      const res = await fetch(endpoint, {
+        method: "POST",
+        headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" },
+        body: form,
+      });
+      if (!res.ok) {
+        setImageError("Не удалось загрузить изображение.");
+        return;
+      }
+      const data = await res.json();
+      if (!data?.url) {
+        setImageError("Не удалось получить ссылку на изображение.");
+        return;
+      }
+      updateAnswer(index, { ...answers[index], imageUrl: data.url } as any);
+    } catch {
+      setImageError("Ошибка загрузки изображения.");
+    }
   };
   return (
     <div className="answers">
@@ -355,9 +452,28 @@ function AnswerList({ answers, onChange }: { answers: AnswerDraft[]; onChange: (
               value={answer.text ?? ""}
               onChange={(e) => updateAnswer(idx, { ...answer, text: e.target.value })}
             />
+            <div className="answer-attach">
+              <label className="attach-btn" title="Добавить картинку">
+                <input
+                  type="file"
+                  accept="image/*"
+                  style={{ display: "none" }}
+                  onChange={(e) => {
+                    const file = e.target.files?.[0];
+                    if (file) uploadAnswerImage(file, idx);
+                    e.currentTarget.value = "";
+                  }}
+                />
+                <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden="true">
+                  <path d="M7 13.5l7.1-7.1a3 3 0 114.2 4.2l-8.5 8.5a5 5 0 11-7.1-7.1l9.2-9.2" fill="none" stroke="currentColor" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
+                </svg>
+              </label>
+              {answer.imageUrl && <img className="answer-image-preview" src={answer.imageUrl} alt="answer" />}
+            </div>
           </div>
         </div>
       ))}
+      {imageError && <p className="error">{imageError}</p>}
       <button type="button" className="tertiary" onClick={() => onChange([...answers, { orderNum: answers.length + 1, text: "" }])}>Добавить ответ</button>
     </div>
   );
@@ -431,9 +547,11 @@ function toApiPayload(draft: TestDraft, opts?: { includeSlug?: boolean }) {
     questions: draft.questions.map((q, qi) => ({
       order_num: qi + 1,
       text: q.text,
+      image_url: q.imageUrl,
       answers: q.answers.map((a, ai) => ({
         order_num: ai + 1,
         text: a.text,
+        image_url: (a as any).imageUrl,
         explanation_title: (a as any).explanationTitle,
         explanation_text: (a as any).explanationText,
       })),
@@ -477,10 +595,12 @@ function fromApiTest(test: TestRead): TestDraft {
     id: question.id,
     orderNum: question.order_num,
     text: question.text,
+    imageUrl: (question as any).image_url || undefined,
     answers: (question.answers || []).map((answer, idx) => ({
       id: answer.id,
       orderNum: answer.order_num ?? idx + 1,
       text: answer.text || "",
+      imageUrl: (answer as any).image_url || undefined,
       explanationTitle: answer.explanation_title || undefined,
       explanationText: answer.explanation_text || undefined,
     })),

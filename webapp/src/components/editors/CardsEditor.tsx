@@ -3,6 +3,7 @@ import type { AxiosInstance } from "axios";
 import WebApp from "@twa-dev/sdk";
 
 import { AnswerDraft, ResultDraft, TestDraft } from "../../types";
+import { compressImage } from "../../utils/image";
 import type { TestRead } from "../../types/tests";
 
 type Props = { api: AxiosInstance; onClose: () => void; editSlug?: string };
@@ -304,8 +305,9 @@ function ImageUploader({
     onPreview(objectUrl);
     setBusy(true);
     try {
+      const processed = await compressImage(file);
       const fd = new FormData();
-      fd.append("file", file);
+      fd.append("file", processed);
       fd.append("prefix", "cards");
       const initData = WebApp.initData || (window as any).Telegram?.WebApp?.initData || "";
       const apiBase = (import.meta as any).env?.VITE_API_BASE_URL;

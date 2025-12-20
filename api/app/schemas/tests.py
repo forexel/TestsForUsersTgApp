@@ -55,6 +55,7 @@ class AnswerRead(AnswerBase):
 class QuestionBase(BaseModel):
     order_num: int
     text: str
+    image_url: str | None = None
 
 
 class QuestionCreate(QuestionBase):

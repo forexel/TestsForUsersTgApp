@@ -14,6 +14,7 @@ export interface QuestionRead {
   id: string;
   order_num: number;
   text: string;
+  image_url?: string | null;
   answers: AnswerRead[];
 }
 
