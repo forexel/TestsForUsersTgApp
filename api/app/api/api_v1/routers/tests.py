@@ -17,8 +17,9 @@ from api.app.crud.tests import create_test, delete_test, get_test_by_id, get_tes
 from api.app.db.session import get_db
 from api.app.dependencies.auth import get_current_admin, get_init_data
 from api.app.schemas import SlugResponse, TestCreate, TestLogCreate, TestRead, TestUpdate
+from api.app.schemas.responses import LeadUpdate, TestEventCreate, TestResponseCreate
 from api.app.models.test_models import Test as TestModel
-from api.app.models.test_models import TestRunLog
+from api.app.models.test_models import TestEvent, TestResponse, TestRunLog
 
 logger = logging.getLogger("tests")
 
@@ -75,6 +76,33 @@ def _build_share_link(slug: str) -> str:
     if username:
         return f"https://t.me/{username}?start=run_{slug}"
     return f"run_{slug}"
+
+
+def _validate_lead_fields(test: TestModel, payload: LeadUpdate) -> None:
+    if not test.lead_enabled:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Lead collection disabled")
+    if payload.lead_name is not None:
+        if not test.lead_collect_name:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Lead name disabled")
+        if len(payload.lead_name) > 10:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Name too long")
+    if payload.lead_phone is not None:
+        if not test.lead_collect_phone:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Lead phone disabled")
+        if not re.fullmatch(r"\\+7\\d{10}", payload.lead_phone):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid phone")
+    if payload.lead_email is not None:
+        if not test.lead_collect_email:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Lead email disabled")
+        if len(payload.lead_email) > 15:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Email too long")
+        if not re.fullmatch(r"[^@\\s]+@[A-Za-z0-9-]+\\.[A-Za-z0-9.-]+", payload.lead_email):
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid email")
+    if payload.lead_site is not None:
+        if not test.lead_collect_site:
+            raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Lead site disabled")
+    if payload.lead_site_clicked is not None and not test.lead_collect_site:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Lead site disabled")
 
 
 def _extract_source(init_data: TelegramInitData) -> tuple[int, str | None]:
@@ -327,6 +355,92 @@ def log_test_completion(
         source_id,
         event_type,
     )
+    return {"status": "ok"}
+
+
+@router.post("/slug/{slug}/events", status_code=status.HTTP_201_CREATED)
+def log_test_event(
+    slug: str,
+    payload: TestEventCreate,
+    db: Session = Depends(get_db),
+    init_data: TelegramInitData = Depends(get_init_data),
+):
+    test = get_test_by_slug(db, slug)
+    if not test:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test not found")
+    event_type = payload.event_type
+    if event_type not in {"screen_open", "answer", "lead_form_submit", "site_click"}:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid event_type")
+    if event_type == "answer" and payload.question_index is None:
+        raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Missing question_index")
+    entry = TestEvent(
+        test=test,
+        test_id=getattr(test, "id", None),
+        test_slug=slug,
+        user_id=init_data.user.id,
+        event_type=event_type,
+        question_index=payload.question_index,
+    )
+    db.add(entry)
+    db.commit()
+    return {"status": "ok"}
+
+
+@router.post("/slug/{slug}/responses", status_code=status.HTTP_201_CREATED)
+def create_test_response(
+    slug: str,
+    payload: TestResponseCreate,
+    db: Session = Depends(get_db),
+    init_data: TelegramInitData = Depends(get_init_data),
+):
+    test = get_test_by_slug(db, slug)
+    if not test:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test not found")
+    answers = [a.model_dump() if hasattr(a, "model_dump") else a.dict() for a in payload.answers]
+    response = TestResponse(
+        test=test,
+        test_id=getattr(test, "id", None),
+        test_slug=slug,
+        user_id=init_data.user.id,
+        user_username=getattr(init_data.user, "username", None),
+        result_title=payload.result_title,
+        answers=answers,
+    )
+    db.add(response)
+    db.commit()
+    db.refresh(response)
+    return {"response_id": str(response.id)}
+
+
+@router.patch("/responses/{response_id}", status_code=status.HTTP_200_OK)
+def update_test_response(
+    response_id: uuid.UUID,
+    payload: LeadUpdate,
+    db: Session = Depends(get_db),
+    init_data: TelegramInitData = Depends(get_init_data),
+):
+    response = db.query(TestResponse).filter(TestResponse.id == response_id).first()
+    if not response:
+        raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Response not found")
+    if response.user_id and response.user_id != init_data.user.id:
+        raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    test = get_test_by_id(db, response.test_id) if response.test_id else None
+    if test:
+        _validate_lead_fields(test, payload)
+    if payload.lead_name is not None:
+        response.lead_name = payload.lead_name
+    if payload.lead_phone is not None:
+        response.lead_phone = payload.lead_phone
+    if payload.lead_email is not None:
+        response.lead_email = payload.lead_email
+    if payload.lead_site is not None:
+        response.lead_site = payload.lead_site
+    if payload.lead_form_submitted is not None:
+        response.lead_form_submitted = payload.lead_form_submitted
+    if payload.lead_site_clicked is not None:
+        response.lead_site_clicked = payload.lead_site_clicked
+    db.add(response)
+    db.commit()
     return {"status": "ok"}
 
 

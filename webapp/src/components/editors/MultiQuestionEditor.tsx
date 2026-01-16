@@ -5,6 +5,7 @@ import { compressImage } from "../../utils/image";
 
 import { AnswerDraft, QuestionDraft, ResultDraft, TestDraft, ScoringMode } from "../../types";
 import type { TestRead } from "../../types/tests";
+import { LeadSettings, LeadSettingsValue } from "./LeadSettings";
 
 type Props = { api: AxiosInstance; onClose: () => void; editSlug?: string };
 
@@ -48,6 +49,12 @@ const initialDraft = (): TestDraft => ({
   isPublic: true,
   bgColor: BG_COLORS[0],
   scoringMode: "majority",
+  leadEnabled: false,
+  leadCollectName: false,
+  leadCollectPhone: false,
+  leadCollectEmail: false,
+  leadCollectSite: false,
+  leadSiteUrl: "",
   questions: [defaultQuestion(1)],
   answers: [],
   results: [defaultResult()],
@@ -57,7 +64,7 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
   const [draft, setDraft] = useState<TestDraft>(() => initialDraft());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
   const [testId, setTestId] = useState<string | null>(null);
   const [currentSlug, setCurrentSlug] = useState<string | null>(null);
   const [loading, setLoading] = useState(false);
@@ -256,11 +263,37 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
           {error && <p className="error">{error}</p>}
           <footer className="actions bottom">
             <button type="button" className="secondary" onClick={() => setStep(2)} disabled={submitting}>Назад</button>
-            <button type="button" onClick={() => setStep(4)} disabled={!canSubmit || submitting}>Далее</button>
+          <button type="button" onClick={() => setStep(4)} disabled={!canSubmit || submitting}>Далее</button>
           </footer>
         </form>
       )}
       {step === 4 && (
+        <section className="form">
+          <LeadSettings
+            value={{
+              leadEnabled: Boolean(draft.leadEnabled),
+              leadCollectName: Boolean(draft.leadCollectName),
+              leadCollectPhone: Boolean(draft.leadCollectPhone),
+              leadCollectEmail: Boolean(draft.leadCollectEmail),
+              leadCollectSite: Boolean(draft.leadCollectSite),
+              leadSiteUrl: draft.leadSiteUrl || "",
+            }}
+            onChange={(next: LeadSettingsValue) => {
+              updateDraft("leadEnabled", next.leadEnabled);
+              updateDraft("leadCollectName", next.leadCollectName);
+              updateDraft("leadCollectPhone", next.leadCollectPhone);
+              updateDraft("leadCollectEmail", next.leadCollectEmail);
+              updateDraft("leadCollectSite", next.leadCollectSite);
+              updateDraft("leadSiteUrl", next.leadSiteUrl);
+            }}
+          />
+          <footer className="actions bottom">
+            <button type="button" className="secondary" onClick={() => setStep(3)} disabled={submitting}>Назад</button>
+            <button type="button" onClick={() => setStep(5)} disabled={submitting}>Далее</button>
+          </footer>
+        </section>
+      )}
+      {step === 5 && (
         <section className="form">
           <h2 className="form-title">Выберите цвет фона</h2>
           <div className="color-grid">
@@ -277,7 +310,7 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
           </div>
           {error && <p className="error">{error}</p>}
           <footer className="actions bottom">
-            <button type="button" className="secondary" onClick={() => setStep(3)} disabled={submitting}>Назад</button>
+            <button type="button" className="secondary" onClick={() => setStep(4)} disabled={submitting}>Назад</button>
             <button type="button" onClick={submitDraft} disabled={!canSubmit || submitting}>
               {submitting ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}
             </button>
@@ -522,6 +555,12 @@ function toApiPayload(draft: TestDraft, opts?: { includeSlug?: boolean }) {
     description: draft.description,
     is_public: true,
     bg_color: draft.bgColor || BG_COLORS[0],
+    lead_enabled: Boolean(draft.leadEnabled),
+    lead_collect_name: Boolean(draft.leadCollectName),
+    lead_collect_phone: Boolean(draft.leadCollectPhone),
+    lead_collect_email: Boolean(draft.leadCollectEmail),
+    lead_collect_site: Boolean(draft.leadCollectSite),
+    lead_site_url: draft.leadSiteUrl || null,
     questions: draft.questions.map((q, qi) => ({
       order_num: qi + 1,
       text: q.text,
@@ -595,6 +634,12 @@ function fromApiTest(test: TestRead): TestDraft {
     isPublic: test.is_public,
     bgColor: (test as any).bg_color || BG_COLORS[0],
     scoringMode,
+    leadEnabled: Boolean((test as any).lead_enabled),
+    leadCollectName: Boolean((test as any).lead_collect_name),
+    leadCollectPhone: Boolean((test as any).lead_collect_phone),
+    leadCollectEmail: Boolean((test as any).lead_collect_email),
+    leadCollectSite: Boolean((test as any).lead_collect_site),
+    leadSiteUrl: ((test as any).lead_site_url as string) || "",
     questions,
     answers: [],
     results: (test.results || [])

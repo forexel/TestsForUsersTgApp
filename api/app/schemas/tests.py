@@ -79,6 +79,12 @@ class TestBase(BaseModel):
     description: str | None = None
     is_public: bool = True
     bg_color: str | None = "3E8BBF"
+    lead_enabled: bool = False
+    lead_collect_name: bool = False
+    lead_collect_phone: bool = False
+    lead_collect_email: bool = False
+    lead_collect_site: bool = False
+    lead_site_url: str | None = None
 
 
 class TestCreate(TestBase):
@@ -93,6 +99,12 @@ class TestUpdate(BaseModel):
     description: str | None = None
     is_public: bool | None = None
     bg_color: str | None = None
+    lead_enabled: bool | None = None
+    lead_collect_name: bool | None = None
+    lead_collect_phone: bool | None = None
+    lead_collect_email: bool | None = None
+    lead_collect_site: bool | None = None
+    lead_site_url: str | None = None
     questions: list[QuestionCreate] | None = None
     answers: list[AnswerCreate] | None = None
     results: list[ResultCreate] | None = None

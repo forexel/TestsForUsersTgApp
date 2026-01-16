@@ -35,6 +35,12 @@ class Test(Base):
     description: Mapped[str | None] = mapped_column(Text())
     is_public: Mapped[bool] = mapped_column(Boolean(), default=True, nullable=False)
     bg_color: Mapped[str | None] = mapped_column(String(16), default="3E8BBF")
+    lead_enabled: Mapped[bool] = mapped_column(Boolean(), default=False, nullable=False)
+    lead_collect_name: Mapped[bool] = mapped_column(Boolean(), default=False, nullable=False)
+    lead_collect_phone: Mapped[bool] = mapped_column(Boolean(), default=False, nullable=False)
+    lead_collect_email: Mapped[bool] = mapped_column(Boolean(), default=False, nullable=False)
+    lead_collect_site: Mapped[bool] = mapped_column(Boolean(), default=False, nullable=False)
+    lead_site_url: Mapped[str | None] = mapped_column(Text())
     created_by: Mapped[int] = mapped_column(BigInteger(), nullable=False)
     created_by_username: Mapped[str | None] = mapped_column(String(255))
     created_at: Mapped[datetime] = mapped_column(
@@ -153,3 +159,69 @@ class TestRunLog(Base):
     )
 
     test: Mapped[Test | None] = relationship("Test")
+
+
+class TestResponse(Base):
+    __tablename__ = "test_responses"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    test_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("tests.id", ondelete="SET NULL"))
+    test_slug: Mapped[str] = mapped_column(String(128), nullable=False)
+    user_id: Mapped[int] = mapped_column(BigInteger(), nullable=False, default=0)
+    user_username: Mapped[str | None] = mapped_column(String(255))
+    result_title: Mapped[str | None] = mapped_column(String(255))
+    answers: Mapped[dict] = mapped_column(JSONB, nullable=False, default=dict)
+    lead_name: Mapped[str | None] = mapped_column(String(64))
+    lead_phone: Mapped[str | None] = mapped_column(String(32))
+    lead_email: Mapped[str | None] = mapped_column(String(64))
+    lead_site: Mapped[str | None] = mapped_column(String(255))
+    lead_form_submitted: Mapped[bool] = mapped_column(Boolean(), default=False, nullable=False)
+    lead_site_clicked: Mapped[bool] = mapped_column(Boolean(), default=False, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    test: Mapped[Test | None] = relationship("Test")
+
+
+class TestEvent(Base):
+    __tablename__ = "test_events"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    test_id: Mapped[uuid.UUID | None] = mapped_column(UUID(as_uuid=True), ForeignKey("tests.id", ondelete="SET NULL"))
+    test_slug: Mapped[str] = mapped_column(String(128), nullable=False)
+    user_id: Mapped[int] = mapped_column(BigInteger(), nullable=False, default=0)
+    event_type: Mapped[str] = mapped_column(String(32), nullable=False)
+    question_index: Mapped[int | None] = mapped_column(Integer())
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+    test: Mapped[Test | None] = relationship("Test")
+
+
+class AdminUser(Base):
+    __tablename__ = "admin_users"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    username: Mapped[str] = mapped_column(String(64), unique=True, nullable=False)
+    password_hash: Mapped[str] = mapped_column(String(255), nullable=False)
+    scope: Mapped[str] = mapped_column(String(16), nullable=False, default="all")
+    owner_username: Mapped[str | None] = mapped_column(String(255))
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+
+
+class AdminToken(Base):
+    __tablename__ = "admin_tokens"
+
+    id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    admin_id: Mapped[uuid.UUID] = mapped_column(UUID(as_uuid=True), ForeignKey("admin_users.id", ondelete="CASCADE"))
+    token: Mapped[str] = mapped_column(String(128), unique=True, nullable=False)
+    created_at: Mapped[datetime] = mapped_column(
+        DateTime(timezone=True), default=lambda: datetime.now(timezone.utc), nullable=False
+    )
+    expires_at: Mapped[datetime | None] = mapped_column(DateTime(timezone=True))
+
+    admin: Mapped[AdminUser] = relationship("AdminUser")

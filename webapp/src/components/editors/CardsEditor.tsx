@@ -5,6 +5,7 @@ import WebApp from "@twa-dev/sdk";
 import { AnswerDraft, ResultDraft, TestDraft } from "../../types";
 import { compressImage } from "../../utils/image";
 import type { TestRead } from "../../types/tests";
+import { LeadSettings, LeadSettingsValue } from "./LeadSettings";
 
 type Props = { api: AxiosInstance; onClose: () => void; editSlug?: string };
 
@@ -19,6 +20,12 @@ const initialDraft = (): TestDraft => ({
   description: "",
   isPublic: true,
   bgColor: BG_COLORS[0],
+  leadEnabled: false,
+  leadCollectName: false,
+  leadCollectPhone: false,
+  leadCollectEmail: false,
+  leadCollectSite: false,
+  leadSiteUrl: "",
   questions: [],
   answers: [defaultAnswer(1), defaultAnswer(2)],
   results: [defaultResult()],
@@ -28,7 +35,7 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
   const [draft, setDraft] = useState<TestDraft>(() => initialDraft());
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
-  const [step, setStep] = useState<1 | 2 | 3>(1);
+  const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
   const [mode, setMode] = useState<"open" | "closed">("closed");
   const [uploadDebug, setUploadDebug] = useState<any | null>(null);
   const [testId, setTestId] = useState<string | null>(null);
@@ -72,6 +79,12 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
           description,
           isPublic: data.is_public,
           bgColor: (data as any).bg_color || BG_COLORS[0],
+          leadEnabled: Boolean((data as any).lead_enabled),
+          leadCollectName: Boolean((data as any).lead_collect_name),
+          leadCollectPhone: Boolean((data as any).lead_collect_phone),
+          leadCollectEmail: Boolean((data as any).lead_collect_email),
+          leadCollectSite: Boolean((data as any).lead_collect_site),
+          leadSiteUrl: ((data as any).lead_site_url as string) || "",
           questions: [],
           answers: mapAnswersFromApi(data),
           results: (data.results || []).map((r) => ({
@@ -214,6 +227,34 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
       )}
     </section>
   );
+  if (step === 3) {
+    return (
+      <section className="card form-card">
+        <LeadSettings
+          value={{
+            leadEnabled: Boolean(draft.leadEnabled),
+            leadCollectName: Boolean(draft.leadCollectName),
+            leadCollectPhone: Boolean(draft.leadCollectPhone),
+            leadCollectEmail: Boolean(draft.leadCollectEmail),
+            leadCollectSite: Boolean(draft.leadCollectSite),
+            leadSiteUrl: draft.leadSiteUrl || "",
+          }}
+          onChange={(next: LeadSettingsValue) => {
+            updateDraft("leadEnabled", next.leadEnabled);
+            updateDraft("leadCollectName", next.leadCollectName);
+            updateDraft("leadCollectPhone", next.leadCollectPhone);
+            updateDraft("leadCollectEmail", next.leadCollectEmail);
+            updateDraft("leadCollectSite", next.leadCollectSite);
+            updateDraft("leadSiteUrl", next.leadSiteUrl);
+          }}
+        />
+        <div className="actions bottom">
+          <button type="button" className="secondary" onClick={() => setStep(2)} disabled={submitting}>Назад</button>
+          <button type="button" onClick={() => setStep(4)} disabled={submitting}>Далее</button>
+        </div>
+      </section>
+    );
+  }
   return (
     <section className="card form-card">
       <h2 className="form-title">Выберите цвет фона</h2>
@@ -231,7 +272,7 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
       </div>
       {error && <p className="error">{error}</p>}
       <footer className="actions bottom">
-        <button type="button" className="secondary" onClick={() => setStep(2)} disabled={submitting}>Назад</button>
+        <button type="button" className="secondary" onClick={() => setStep(3)} disabled={submitting}>Назад</button>
         <button type="button" disabled={submitting} onClick={submitDraft}>
           {submitting ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}
         </button>
@@ -396,6 +437,12 @@ function toApiPayload(draft: TestDraft, mode: "open" | "closed", opts?: { includ
     description: `[${mode}] ` + (draft.description || ""),
     is_public: draft.isPublic,
     bg_color: draft.bgColor || BG_COLORS[0],
+    lead_enabled: Boolean(draft.leadEnabled),
+    lead_collect_name: Boolean(draft.leadCollectName),
+    lead_collect_phone: Boolean(draft.leadCollectPhone),
+    lead_collect_email: Boolean(draft.leadCollectEmail),
+    lead_collect_site: Boolean(draft.leadCollectSite),
+    lead_site_url: draft.leadSiteUrl || null,
     questions: [],
     answers: draft.answers.map((a, idx) => ({
       order_num: idx + 1,

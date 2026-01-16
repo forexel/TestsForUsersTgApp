@@ -2,6 +2,7 @@ import { useEffect, useState } from "react";
 import type { AxiosInstance } from "axios";
 import WebApp from "@twa-dev/sdk";
 import { compressImage } from "../../utils/image";
+import { LeadSettings, LeadSettingsValue } from "./LeadSettings";
 import type { TelegramUser } from "../../types/telegram";
 import type { TestRead } from "../../types/tests";
 
@@ -22,10 +23,18 @@ export default function SingleEditor({
   editSlug?: string;
 }) {
   const [title, setTitle] = useState<string>("");
-  const [step, setStep] = useState<"title" | "question" | "color">("title");
+  const [step, setStep] = useState<"title" | "question" | "lead" | "color">("title");
   const [qa, setQa] = useState<{ question: string; answers: Answer[]; imageUrl?: string }>({ question: "", answers: [{ text: "" }, { text: "" }] });
   const [imageError, setImageError] = useState<string | null>(null);
   const [bgColor, setBgColor] = useState<string>(BG_COLORS[0]);
+  const [leadSettings, setLeadSettings] = useState<LeadSettingsValue>({
+    leadEnabled: false,
+    leadCollectName: false,
+    leadCollectPhone: false,
+    leadCollectEmail: false,
+    leadCollectSite: false,
+    leadSiteUrl: "",
+  });
   const [testId, setTestId] = useState<string | null>(null);
   const [loading, setLoading] = useState<boolean>(false);
   const [loadError, setLoadError] = useState<string | null>(null);
@@ -60,6 +69,14 @@ export default function SingleEditor({
         };
         setQa(nextQa.answers.length ? nextQa : { question: "", answers: [{ text: "" }, { text: "" }] });
         setBgColor((data as any).bg_color || BG_COLORS[0]);
+        setLeadSettings({
+          leadEnabled: Boolean((data as any).lead_enabled),
+          leadCollectName: Boolean((data as any).lead_collect_name),
+          leadCollectPhone: Boolean((data as any).lead_collect_phone),
+          leadCollectEmail: Boolean((data as any).lead_collect_email),
+          leadCollectSite: Boolean((data as any).lead_collect_site),
+          leadSiteUrl: ((data as any).lead_site_url as string) || "",
+        });
         setStep("question");
       })
       .catch((err: any) => {
@@ -88,6 +105,12 @@ export default function SingleEditor({
       description: "",
       is_public: true,
       bg_color: bgColor,
+      lead_enabled: leadSettings.leadEnabled,
+      lead_collect_name: leadSettings.leadCollectName,
+      lead_collect_phone: leadSettings.leadCollectPhone,
+      lead_collect_email: leadSettings.leadCollectEmail,
+      lead_collect_site: leadSettings.leadCollectSite,
+      lead_site_url: leadSettings.leadSiteUrl || null,
       questions: [
         {
           order_num: 1,
@@ -163,9 +186,20 @@ export default function SingleEditor({
         onImageError={setImageError}
         submitting={submitting}
         error={submitError}
-        onNext={() => setStep("color")}
+        onNext={() => setStep("lead")}
         onBack={() => setStep("title")}
       />
+    );
+  }
+  if (step === "lead") {
+    return (
+      <section className="card form-card">
+        <LeadSettings value={leadSettings} onChange={setLeadSettings} />
+        <div className="actions bottom">
+          <button className="secondary" type="button" onClick={() => setStep("question")}>Назад</button>
+          <button type="button" onClick={() => setStep("color")}>Далее</button>
+        </div>
+      </section>
     );
   }
   return (
@@ -173,7 +207,7 @@ export default function SingleEditor({
       value={bgColor}
       onChange={setBgColor}
       submitting={submitting}
-      onBack={() => setStep("question")}
+      onBack={() => setStep("lead")}
       onSubmit={() => save({ question: qa.question, answers: qa.answers, imageUrl: qa.imageUrl })}
       mode={isEdit ? "edit" : "create"}
     />

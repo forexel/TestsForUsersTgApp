@@ -27,7 +27,20 @@ def create_test(db: Session, payload: TestCreate, *, created_by: int, created_by
     answers_data = data.pop("answers", [])
     results_data = data.pop("results", [])
 
-    base_fields = {"slug", "title", "type", "description", "is_public", "bg_color"}
+    base_fields = {
+        "slug",
+        "title",
+        "type",
+        "description",
+        "is_public",
+        "bg_color",
+        "lead_enabled",
+        "lead_collect_name",
+        "lead_collect_phone",
+        "lead_collect_email",
+        "lead_collect_site",
+        "lead_site_url",
+    }
     test = Test(
         **{k: v for k, v in data.items() if k in base_fields},
         created_by=created_by,
@@ -84,6 +97,18 @@ def update_test(db: Session, test: Test, payload: TestUpdate) -> Test:
         test.is_public = data["is_public"]
     if "bg_color" in data:
         test.bg_color = data["bg_color"]
+    if "lead_enabled" in data:
+        test.lead_enabled = data["lead_enabled"]
+    if "lead_collect_name" in data:
+        test.lead_collect_name = data["lead_collect_name"]
+    if "lead_collect_phone" in data:
+        test.lead_collect_phone = data["lead_collect_phone"]
+    if "lead_collect_email" in data:
+        test.lead_collect_email = data["lead_collect_email"]
+    if "lead_collect_site" in data:
+        test.lead_collect_site = data["lead_collect_site"]
+    if "lead_site_url" in data:
+        test.lead_site_url = data["lead_site_url"]
 
     if "results" in data:
         test.results.clear()

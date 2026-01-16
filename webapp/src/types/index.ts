@@ -38,6 +38,12 @@ export interface TestDraft {
   isPublic: boolean;
   // Client-only control that affects how results are calculated for multi-question tests
   scoringMode?: ScoringMode; // 'majority' based on most frequent answer index; 'points' based on sum
+  leadEnabled?: boolean;
+  leadCollectName?: boolean;
+  leadCollectPhone?: boolean;
+  leadCollectEmail?: boolean;
+  leadCollectSite?: boolean;
+  leadSiteUrl?: string;
   questions: QuestionDraft[];
   answers: AnswerDraft[];
   results: ResultDraft[];

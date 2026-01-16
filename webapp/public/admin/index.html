@@ -1,0 +1,70 @@
+<!doctype html>
+<html lang="ru">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Admin Analytics</title>
+  <link rel="stylesheet" href="/admin/admin.css" />
+</head>
+<body>
+  <div class="page" id="app">
+    <header class="topbar">
+      <div class="brand">TestMaker Admin</div>
+      <button class="link" id="logoutBtn" hidden>Выйти</button>
+    </header>
+
+    <main class="layout">
+      <aside class="sidebar">
+        <div class="login" id="loginBox">
+          <h2>Вход</h2>
+          <label>
+            <span>Логин</span>
+            <input id="loginUser" placeholder="Admin" autocomplete="username" />
+          </label>
+          <label>
+            <span>Пароль</span>
+            <input id="loginPass" type="password" placeholder="12345678" autocomplete="current-password" />
+          </label>
+          <button id="loginBtn">Войти</button>
+          <div class="error" id="loginError"></div>
+        </div>
+
+        <div class="tests" id="testsBox" hidden>
+          <div class="tests__header">
+            <h2>Тесты</h2>
+            <input id="searchInput" placeholder="Поиск по названию" />
+          </div>
+          <div class="tests__list" id="testsList"></div>
+        </div>
+      </aside>
+
+      <section class="content">
+        <div class="empty" id="emptyState">Выберите тест слева</div>
+        <div class="report" id="reportBox" hidden>
+          <div class="report__header">
+            <div>
+              <h1 id="reportTitle"></h1>
+              <div class="muted" id="reportSlug"></div>
+            </div>
+            <button id="downloadBtn">Скачать Excel</button>
+          </div>
+
+          <section class="card">
+            <h3>Воронка</h3>
+            <div class="funnel" id="funnelBox"></div>
+          </section>
+
+          <section class="card">
+            <h3>Ответы пользователей</h3>
+            <div class="table-wrap">
+              <table id="responsesTable"></table>
+            </div>
+          </section>
+        </div>
+      </section>
+    </main>
+  </div>
+
+  <script src="/admin/admin.js"></script>
+</body>
+</html>

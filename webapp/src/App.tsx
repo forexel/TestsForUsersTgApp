@@ -22,7 +22,7 @@ type Route =
   | { name: "editor"; testType: TestType; slug?: string }
   | { name: "success"; slug?: string }
   | { name: "run"; slug: string }
-  | { name: "result"; slug: string; answerId: string }
+  | { name: "result"; slug: string; answerId: string; responseId?: string }
   | { name: "statistic" };
 
 function normalizeSlug(slug: string): string {
@@ -64,7 +64,8 @@ function parseHash(): Route {
     case "result": {
       const slug = params.get("slug") || "";
       const answerId = params.get("answerId") || "";
-      return { name: "result", slug, answerId };
+      const responseId = params.get("responseId") || undefined;
+      return { name: "result", slug, answerId, responseId };
     }
     case "statistic":
       return { name: "statistic" };
@@ -166,7 +167,7 @@ export default function App() {
         <TestPage api={api} slug={route.slug} />
       )}
       {route.name === "result" && (
-        <ResultPage api={api} slug={route.slug} answerId={route.answerId} />
+        <ResultPage api={api} slug={route.slug} answerId={route.answerId} responseId={route.responseId} />
       )}
       {route.name === "statistic" && (
         <Statistic api={api} />

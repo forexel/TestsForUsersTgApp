@@ -345,3 +345,47 @@ html.tp-blue, body.tp-blue, :root.tp-blue {
   font-size: 16px;
   margin-bottom: 4px;
 }
+
+.tp-lead {
+  margin-top: 16px;
+  padding: 14px;
+  border: 1px solid rgba(0, 0, 0, 0.08);
+  border-radius: 16px;
+  background: #ffffff;
+}
+
+.tp-lead__title {
+  font-weight: 700;
+  margin-bottom: 8px;
+}
+
+.tp-lead__grid {
+  display: grid;
+  gap: 8px;
+}
+
+.tp-lead__field {
+  display: grid;
+  gap: 4px;
+  font-size: 14px;
+}
+
+.tp-lead__field input {
+  padding: 10px 12px;
+  border-radius: 10px;
+  border: 1px solid #d7d7d7;
+  font-size: 14px;
+}
+
+.tp-lead__actions {
+  margin-top: 10px;
+  display: flex;
+  gap: 8px;
+  flex-wrap: wrap;
+}
+
+.tp-btn--ghost {
+  background: transparent;
+  border: 1px solid #cfd4da;
+  color: #1d1f23;
+}

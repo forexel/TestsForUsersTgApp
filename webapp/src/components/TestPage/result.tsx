@@ -1,10 +1,11 @@
 
 
 
-import { useEffect, useMemo, useState } from "react";
+import { useEffect, useMemo, useState, useCallback } from "react";
 import type { AxiosInstance } from "axios";
 import WebApp from "@twa-dev/sdk";
 import "./testpage.css";
+import LeadCapture from "./LeadCapture";
 
 type Answer = {
   id: string;
@@ -30,9 +31,25 @@ type TestRead = {
   questions: Question[];
   answers: Answer[];
   bg_color?: string | null;
+  lead_enabled?: boolean;
+  lead_collect_name?: boolean;
+  lead_collect_phone?: boolean;
+  lead_collect_email?: boolean;
+  lead_collect_site?: boolean;
+  lead_site_url?: string | null;
 };
 
-export default function ResultPage({ api, slug, answerId }: { api: AxiosInstance; slug: string; answerId: string }) {
+export default function ResultPage({
+  api,
+  slug,
+  answerId,
+  responseId,
+}: {
+  api: AxiosInstance;
+  slug: string;
+  answerId: string;
+  responseId?: string;
+}) {
   const [test, setTest] = useState<TestRead | null>(null);
   const [loading, setLoading] = useState(true);
   const [error, setError] = useState<string | null>(null);
@@ -78,6 +95,15 @@ export default function ResultPage({ api, slug, answerId }: { api: AxiosInstance
     };
   }, [api, slug]);
 
+  const logEvent = useCallback((eventType: string) => {
+    if (!slug) return;
+    api.post(
+      `/tests/slug/${encodeURIComponent(slug)}/events`,
+      { event_type: eventType },
+      { headers: { "X-Telegram-Init-Data": WebApp.initData ?? "" } }
+    ).catch(() => {});
+  }, [api, slug]);
+
   const pickedAnswer = useMemo(() => {
     const q = test?.questions?.[0];
     return q?.answers?.find((a) => String(a.id) === String(answerId));
@@ -100,6 +126,15 @@ export default function ResultPage({ api, slug, answerId }: { api: AxiosInstance
               <div className="tp-result-box">
                 <p style={{ margin: 0 }}>{pickedAnswer.explanation_text || ""}</p>
               </div>
+              {test && (
+                <LeadCapture
+                  api={api}
+                  slug={slug}
+                  config={test}
+                  responseId={responseId || null}
+                  onEvent={(eventType) => logEvent(eventType)}
+                />
+              )}
               <button
                 className="tp-btn"
                 type="button"
