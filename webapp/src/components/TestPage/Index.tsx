@@ -479,8 +479,9 @@ function MultiRunner({
   }
 
   const result = computeResult();
+  const resultTitle = result?.title || "Результат";
   useEffect(() => {
-    if (!done || !result || !createResponse || responseId !== null) return;
+    if (!done || !createResponse || responseId !== null) return;
     const answersPayload = questions.map((q, idx) => {
       const aId = selected[q.id];
       const a = q.answers.find((x) => String(x.id) === String(aId));
@@ -492,11 +493,11 @@ function MultiRunner({
         order_num: idx + 1,
       };
     });
-    createResponse(answersPayload, result.title).then((id) => {
+    createResponse(answersPayload, resultTitle).then((id) => {
       const next = id || null;
       setResponseId(next);
     });
-  }, [done, result, createResponse, questions, selected, responseId]);
+  }, [done, createResponse, questions, selected, responseId, resultTitle]);
   return (
     <div className="tp-wrap">
       <div className="tp-root-title">Результат</div>
