@@ -267,6 +267,8 @@ table th,
   color: var(--muted);
   font-size: 13px;
   line-height: 1.4;
+  display: grid;
+  gap: 4px;
 }
 
 .qa-item__image {

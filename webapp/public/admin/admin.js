@@ -143,7 +143,7 @@
     report.questions.forEach((q) => {
       const item = document.createElement("div");
       item.className = "qa-item";
-      const answers = (q.answers || []).filter(Boolean).join(", ");
+      const answers = (q.answers || []).filter(Boolean).map((a) => `<div>${a}</div>`).join("");
       const image = q.image_url ? `<img class="qa-item__image" src="${q.image_url}" alt="question" />` : "";
       item.innerHTML = `
         <div class="qa-item__title">${q.order_num}. ${q.text}</div>
