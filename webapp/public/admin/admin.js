@@ -42,7 +42,8 @@
   const renderTests = (filter = "") => {
     testsList.innerHTML = "";
     testsError.textContent = "";
-    const filtered = tests.filter((t) => t.title.toLowerCase().includes(filter.toLowerCase()));
+    const needle = (filter || "").toLowerCase();
+    const filtered = tests.filter((t) => String(t.title || "").toLowerCase().includes(needle));
     if (!filtered.length) {
       testsError.textContent = "Тесты не найдены";
       return;
