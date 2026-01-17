@@ -44,15 +44,15 @@ export function SelectType({
           />
           <span>Несколько вопросов</span>
         </label>
+        <label className="radio-item" style={{ marginTop: 4 }}>
+          <input
+            type="checkbox"
+            checked={leadEnabled}
+            onChange={(e) => setLeadEnabled(e.target.checked)}
+          />
+          <span>Сбор лидов</span>
+        </label>
       </div>
-      <label className="checkbox" style={{ marginTop: 12 }}>
-        <input
-          type="checkbox"
-          checked={leadEnabled}
-          onChange={(e) => setLeadEnabled(e.target.checked)}
-        />
-        Сбор лидов
-      </label>
       <div className="actions bottom">
         <button className="secondary" type="button" onClick={onBack}>Назад</button>
         <button

@@ -51,6 +51,8 @@ def _issue_token(db: Session, admin: AdminUser) -> str:
 
 def _apply_admin_scope(query, admin: AdminUser):
     if admin.scope == "owner":
+        if admin.username == "admin":
+            return query
         owner = admin.owner_username or admin.username
         return query.filter(Test.created_by_username == owner)
     return query

@@ -5,6 +5,7 @@
   const loginBox = document.getElementById("loginBox");
   const testsBox = document.getElementById("testsBox");
   const testsList = document.getElementById("testsList");
+  const testsError = document.getElementById("testsError");
   const loginBtn = document.getElementById("loginBtn");
   const loginError = document.getElementById("loginError");
   const loginUser = document.getElementById("loginUser");
@@ -40,7 +41,12 @@
 
   const renderTests = (filter = "") => {
     testsList.innerHTML = "";
+    testsError.textContent = "";
     const filtered = tests.filter((t) => t.title.toLowerCase().includes(filter.toLowerCase()));
+    if (!filtered.length) {
+      testsError.textContent = "Тесты не найдены";
+      return;
+    }
     filtered.forEach((t) => {
       const item = document.createElement("div");
       item.className = "test-item" + (t.id === activeTestId ? " active" : "");
@@ -116,11 +122,17 @@
   };
 
   const loadTests = async () => {
-    const data = await fetchJson(`${API_BASE}/admin/tests`, {
-      headers: { "X-Admin-Token": getToken() },
-    });
-    tests = data || [];
-    renderTests();
+    testsError.textContent = "";
+    try {
+      const data = await fetchJson(`${API_BASE}/admin/tests`, {
+        headers: { "X-Admin-Token": getToken() },
+      });
+      tests = Array.isArray(data) ? data : [];
+      renderTests();
+    } catch (err) {
+      tests = [];
+      testsError.textContent = err.message || "Не удалось загрузить тесты";
+    }
   };
 
   const setAuthState = (authed) => {
