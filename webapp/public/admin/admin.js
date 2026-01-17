@@ -196,10 +196,10 @@
         total += 1;
         counts[answer] = (counts[answer] || 0) + 1;
       });
-      const answers = Object.keys(counts);
+      const answers = (q.answers || []).map((a) => a.text).filter(Boolean);
       const rows = answers.length
         ? answers.map((answer) => {
-            const pct = total ? Math.round((counts[answer] / total) * 100) : 0;
+            const pct = total ? Math.round(((counts[answer] || 0) / total) * 100) : 0;
             return `<div class="dist-row"><span>${answer}</span><strong>${pct}%</strong></div>`;
           }).join("")
         : `<div class="muted">Нет ответов</div>`;
