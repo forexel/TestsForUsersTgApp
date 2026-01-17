@@ -220,7 +220,13 @@ export function CardsEditor({ api, onClose, editSlug, leadEnabledDefault }: Prop
         {error && <p className="error">{error}</p>}
         <footer className="actions bottom">
           <button type="button" className="secondary" onClick={() => setStep(1)} disabled={submitting}>Назад</button>
-          <button type="button" onClick={() => setStep(colorStep)} disabled={!canSubmit || submitting}>Далее</button>
+          <button
+            type="button"
+            onClick={() => setStep(showLeadStep ? (leadStep as number) : colorStep)}
+            disabled={!canSubmit || submitting}
+          >
+            Далее
+          </button>
         </footer>
       </form>
       {uploadDebug && (
