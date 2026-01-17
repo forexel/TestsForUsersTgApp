@@ -269,7 +269,7 @@ export function MultiQuestionEditor({ api, onClose, editSlug, leadEnabledDefault
             <button type="button" className="secondary" onClick={() => setStep(2)} disabled={submitting}>Назад</button>
             <button
               type="button"
-              onClick={() => setStep(showLeadStep ? (leadStep as number) : colorStep)}
+              onClick={() => setStep(showLeadStep ? 4 : colorStep)}
               disabled={!canSubmit || submitting}
             >
               Далее

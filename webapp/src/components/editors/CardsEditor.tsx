@@ -222,7 +222,7 @@ export function CardsEditor({ api, onClose, editSlug, leadEnabledDefault }: Prop
           <button type="button" className="secondary" onClick={() => setStep(1)} disabled={submitting}>Назад</button>
           <button
             type="button"
-            onClick={() => setStep(showLeadStep ? (leadStep as number) : colorStep)}
+            onClick={() => setStep(showLeadStep ? 3 : colorStep)}
             disabled={!canSubmit || submitting}
           >
             Далее
