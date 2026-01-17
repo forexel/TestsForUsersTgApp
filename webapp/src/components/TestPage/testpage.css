@@ -51,6 +51,13 @@
   gap: 10px;
   row-gap: 10px;
 }
+.tp-panel--result {
+  min-height: 0;
+  max-height: none;
+}
+.tp-panel--result .tp-panel__content {
+  overflow-y: visible;
+}
 .tp-panel__content > * {
   margin: 0 !important;
   padding: 0;
@@ -185,8 +192,8 @@
   min-height: 0;
   display: block;
   text-align: center;
-  max-height: 40vh;
-  overflow-y: auto;
+  max-height: none;
+  overflow-y: visible;
 }
 .tp-close { width: 60%; margin: 12px auto 0; display: block; border-radius: 20px; }
 

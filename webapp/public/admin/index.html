@@ -49,10 +49,9 @@
               <div class="muted" id="reportOwner"></div>
               <div class="muted" id="reportDate"></div>
             </div>
-            <button id="downloadBtn">Скачать Excel</button>
           </div>
 
-          <section class="card">
+          <section class="card funnel-card">
             <h3>Воронка</h3>
             <div class="funnel-bars" id="funnelBox"></div>
           </section>
@@ -62,10 +61,14 @@
               <button class="tab active" data-tab="responses">Ответы пользователей</button>
               <button class="tab" data-tab="qa">Вопросы и ответы</button>
               <button class="tab" data-tab="results">Результаты</button>
+              <button class="tab" data-tab="distribution">Распределение ответов</button>
             </div>
             <div class="tab-panel" data-panel="responses">
               <div class="table-wrap">
                 <table id="responsesTable"></table>
+              </div>
+              <div class="table-actions">
+                <button id="downloadBtn">Скачать Excel</button>
               </div>
             </div>
             <div class="tab-panel hidden" data-panel="qa">
@@ -73,6 +76,9 @@
             </div>
             <div class="tab-panel hidden" data-panel="results">
               <div id="resultsList" class="qa-list"></div>
+            </div>
+            <div class="tab-panel hidden" data-panel="distribution">
+              <div id="distributionList" class="qa-list"></div>
             </div>
           </section>
         </div>

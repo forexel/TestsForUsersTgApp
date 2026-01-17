@@ -334,7 +334,7 @@ function CardsRunner({
   return (
     <div className="tp-wrap">
       <div className="tp-root-title">Результат</div>
-      <div className="tp-panel">
+      <div className="tp-panel tp-panel--result">
         <div className="tp-panel__content tp-result">
           {current ? (
             <>
@@ -508,7 +508,7 @@ function MultiRunner({
   return (
     <div className="tp-wrap">
       <div className="tp-root-title">Результат</div>
-      <div className="tp-panel">
+      <div className="tp-panel tp-panel--result">
         <div className="tp-panel__content tp-result">
           {result ? (
             <>

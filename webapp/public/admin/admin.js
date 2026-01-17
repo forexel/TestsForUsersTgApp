@@ -23,6 +23,7 @@
   const downloadBtn = document.getElementById("downloadBtn");
   const qaList = document.getElementById("qaList");
   const resultsList = document.getElementById("resultsList");
+  const distributionList = document.getElementById("distributionList");
   const tabs = Array.from(document.querySelectorAll(".tab"));
   const panels = Array.from(document.querySelectorAll(".tab-panel"));
 
@@ -107,7 +108,7 @@
     if (!responsesTable) return;
     const { questions, responses, test } = report;
     const headers = ["telegram_id", "user", "user_type"];
-    questions.forEach((q) => headers.push(q.text));
+    questions.forEach((q, idx) => headers.push(`Вопрос ${idx + 1}`));
     if (test.lead_enabled) {
       if (test.lead_collect_name) headers.push("lead_name");
       if (test.lead_collect_phone) headers.push("lead_phone");
@@ -183,6 +184,36 @@
     });
   };
 
+  const renderDistribution = (report) => {
+    if (!distributionList) return;
+    distributionList.innerHTML = "";
+    const responses = report.responses || [];
+    report.questions.forEach((q, idx) => {
+      const counts = {};
+      let total = 0;
+      responses.forEach((r) => {
+        const answer = r.answers?.[String(q.id)];
+        if (!answer) return;
+        total += 1;
+        counts[answer] = (counts[answer] || 0) + 1;
+      });
+      const answers = Object.keys(counts);
+      const rows = answers.length
+        ? answers.map((answer) => {
+            const pct = total ? Math.round((counts[answer] / total) * 100) : 0;
+            return `<div class="dist-row"><span>${answer}</span><strong>${pct}%</strong></div>`;
+          }).join("")
+        : `<div class="muted">Нет ответов</div>`;
+      const item = document.createElement("div");
+      item.className = "qa-item";
+      item.innerHTML = `
+        <div class="qa-item__title">Вопрос ${idx + 1}</div>
+        <div class="qa-item__answers">${rows}</div>
+      `;
+      distributionList.appendChild(item);
+    });
+  };
+
   const selectTest = async (id) => {
     activeTestId = id;
     renderTests(searchInput.value || "");
@@ -205,6 +236,7 @@
     renderResponses(report);
     renderQa(report);
     renderResults(report);
+    renderDistribution(report);
   };
 
   const loadTests = async () => {
