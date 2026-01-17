@@ -19,7 +19,7 @@
   const reportOwner = document.getElementById("reportOwner");
   const reportDate = document.getElementById("reportDate");
   const funnelBox = document.getElementById("funnelBox");
-  const responsesList = document.getElementById("responsesList");
+  const responsesTable = document.getElementById("responsesTable");
   const downloadBtn = document.getElementById("downloadBtn");
   const qaList = document.getElementById("qaList");
   const resultsList = document.getElementById("resultsList");
@@ -72,73 +72,69 @@
       { label: "Отправлено лид-форм", value: funnel.lead_form_submits },
       { label: "Клики по сайту", value: funnel.site_clicks },
     ];
+    const total = rows[0]?.value || 0;
+    let prev = total;
     funnelBox.innerHTML = rows
-      .map((row) => `<tr><td>${row.label}</td><td>${row.value}</td></tr>`)
+      .map((row) => {
+        const pctTotal = total ? Math.round((row.value / total) * 100) : 0;
+        const pctPrev = prev ? Math.round((row.value / prev) * 100) : 0;
+        prev = row.value;
+        const width = total ? Math.max(2, Math.round((row.value / total) * 100)) : 0;
+        return `
+          <div class="funnel-bar">
+            <div class="funnel-bar__label">
+              <span>${row.label}</span>
+              <strong>${row.value}</strong>
+            </div>
+            <div class="funnel-bar__track">
+              <div class="funnel-bar__fill" style="width:${width}%;"></div>
+            </div>
+            <div class="funnel-bar__meta">
+              <span>от общего: ${pctTotal}%</span>
+              <span>от предыдущего: ${pctPrev}%</span>
+            </div>
+          </div>
+        `;
+      })
       .join("");
   };
 
   const renderResponses = (report) => {
-    if (!responsesList) return;
+    if (!responsesTable) return;
     const { questions, responses, test } = report;
-    responsesList.innerHTML = "";
-    responses.forEach((r, idx) => {
-      const card = document.createElement("div");
-      card.className = "response-card";
+    const headers = ["telegram_id", "user", "result"];
+    questions.forEach((q) => headers.push(q.text));
+    if (test.lead_enabled) {
+      if (test.lead_collect_name) headers.push("lead_name");
+      if (test.lead_collect_phone) headers.push("lead_phone");
+      if (test.lead_collect_email) headers.push("lead_email");
+      if (test.lead_collect_site) {
+        headers.push("lead_site");
+        headers.push("site_clicked");
+      }
+    }
+    const thead = `<thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead>`;
+    const rows = responses.map((r) => {
       const username = r.user_username ? `@${r.user_username}` : "";
       const fallbackId = r.user_id && r.user_id !== 0 ? `id:${r.user_id}` : "";
       const leadPhone = r.lead_phone ? `tel:${r.lead_phone}` : "";
       const identifier = username || leadPhone || fallbackId || "unknown";
-      const userType = r.user_id && r.user_id !== 0 ? "telegram" : "guest";
-      const meta = `
-        <div class="response-title">Пользователь ${idx + 1}</div>
-        <div class="response-meta">
-          <div>${identifier}</div>
-          <div>type: ${userType}</div>
-          ${r.result_title ? `<div>result: ${r.result_title}</div>` : ""}
-        </div>
-      `;
-      const rows = [];
+      const cols = [r.user_id, identifier, r.result_title || ""];
       questions.forEach((q) => {
-        rows.push(`
-          <div class="response-row">
-            <div class="response-label">${q.order_num}. ${q.text}</div>
-            <div class="response-value">${r.answers[String(q.id)] || "—"}</div>
-          </div>
-        `);
+        cols.push(r.answers[String(q.id)] || "");
       });
       if (test.lead_enabled) {
-        if (test.lead_collect_name) rows.push(`
-          <div class="response-row">
-            <div class="response-label">lead_name</div>
-            <div class="response-value">${r.lead_name || "—"}</div>
-          </div>
-        `);
-        if (test.lead_collect_phone) rows.push(`
-          <div class="response-row">
-            <div class="response-label">lead_phone</div>
-            <div class="response-value">${r.lead_phone || "—"}</div>
-          </div>
-        `);
-        if (test.lead_collect_email) rows.push(`
-          <div class="response-row">
-            <div class="response-label">lead_email</div>
-            <div class="response-value">${r.lead_email || "—"}</div>
-          </div>
-        `);
-        if (test.lead_collect_site) rows.push(`
-          <div class="response-row">
-            <div class="response-label">lead_site</div>
-            <div class="response-value">${r.lead_site || "—"}</div>
-          </div>
-          <div class="response-row">
-            <div class="response-label">site_clicked</div>
-            <div class="response-value">${r.lead_site_clicked ? "yes" : "no"}</div>
-          </div>
-        `);
+        if (test.lead_collect_name) cols.push(r.lead_name || "");
+        if (test.lead_collect_phone) cols.push(r.lead_phone || "");
+        if (test.lead_collect_email) cols.push(r.lead_email || "");
+        if (test.lead_collect_site) {
+          cols.push(r.lead_site || "");
+          cols.push(r.lead_site_clicked ? "yes" : "no");
+        }
       }
-      card.innerHTML = meta + rows.join("");
-      responsesList.appendChild(card);
+      return `<tr>${cols.map((c) => `<td>${String(c)}</td>`).join("")}</tr>`;
     });
+    responsesTable.innerHTML = thead + `<tbody>${rows.join("")}</tbody>`;
   };
 
   const renderQa = (report) => {
