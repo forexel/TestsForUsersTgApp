@@ -47,6 +47,7 @@
               <h1 id="reportTitle"></h1>
               <div class="muted" id="reportSlug"></div>
               <div class="muted" id="reportOwner"></div>
+              <div class="muted" id="reportDate"></div>
             </div>
             <button id="downloadBtn">Скачать Excel</button>
           </div>
@@ -60,14 +61,16 @@
             <div class="tabs">
               <button class="tab active" data-tab="responses">Ответы пользователей</button>
               <button class="tab" data-tab="qa">Вопросы и ответы</button>
+              <button class="tab" data-tab="results">Результаты</button>
             </div>
             <div class="tab-panel" data-panel="responses">
-              <div class="table-wrap">
-                <table id="responsesTable"></table>
-              </div>
+              <div id="responsesList" class="responses-list"></div>
             </div>
             <div class="tab-panel hidden" data-panel="qa">
               <div id="qaList" class="qa-list"></div>
+            </div>
+            <div class="tab-panel hidden" data-panel="results">
+              <div id="resultsList" class="qa-list"></div>
             </div>
           </section>
         </div>

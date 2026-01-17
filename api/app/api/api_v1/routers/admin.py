@@ -19,6 +19,7 @@ from api.app.schemas.admin import (
     AdminLoginResponse,
     AdminQuestion,
     AdminResponseRow,
+    AdminResult,
     AdminTestFunnel,
     AdminTestListItem,
     AdminTestReport,
@@ -76,6 +77,8 @@ def list_tests(admin: AdminUser = Depends(get_admin_user), db: Session = Depends
             slug=t.slug,
             title=t.title,
             created_by_username=t.created_by_username,
+            created_by=t.created_by,
+            created_at=t.created_at.isoformat() if t.created_at else None,
             lead_enabled=t.lead_enabled,
             lead_collect_name=t.lead_collect_name,
             lead_collect_phone=t.lead_collect_phone,
@@ -173,12 +176,17 @@ def get_test_report(test_id: uuid.UUID, admin: AdminUser = Depends(get_admin_use
             text=q.text,
             order_num=q.order_num,
             answers=[a.text or "" for a in sorted(q.answers, key=lambda a: a.order_num)],
+            image_url=q.image_url,
         )
         for q in sorted(test.questions, key=lambda q: q.order_num)
     ]
     if not questions and test.type == "cards":
         answers = [a.text or "" for a in sorted(test.answers, key=lambda a: a.order_num)]
-        questions = [AdminQuestion(id="card", text="Выбранная карта", order_num=1, answers=answers)]
+        questions = [AdminQuestion(id="card", text="Выбранная карта", order_num=1, answers=answers, image_url=None)]
+    results = [
+        AdminResult(title=r.title, description=r.description, image_url=r.image_url)
+        for r in sorted(test.results, key=lambda r: r.order_num or 0)
+    ]
     funnel = _build_funnel(test.id, len(questions), db)
     responses = _responses_for_test(test.id, db)
     return AdminTestReport(
@@ -187,6 +195,8 @@ def get_test_report(test_id: uuid.UUID, admin: AdminUser = Depends(get_admin_use
             slug=test.slug,
             title=test.title,
             created_by_username=test.created_by_username,
+            created_by=test.created_by,
+            created_at=test.created_at.isoformat() if test.created_at else None,
             lead_enabled=test.lead_enabled,
             lead_collect_name=test.lead_collect_name,
             lead_collect_phone=test.lead_collect_phone,
@@ -195,6 +205,7 @@ def get_test_report(test_id: uuid.UUID, admin: AdminUser = Depends(get_admin_use
             lead_site_url=test.lead_site_url,
         ),
         questions=questions,
+        results=results,
         funnel=funnel,
         responses=responses,
     )

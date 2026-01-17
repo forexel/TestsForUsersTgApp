@@ -20,6 +20,8 @@ class AdminTestListItem(BaseModel):
     slug: str
     title: str
     created_by_username: str | None = None
+    created_by: int | None = None
+    created_at: str | None = None
     lead_enabled: bool
     lead_collect_name: bool
     lead_collect_phone: bool
@@ -33,6 +35,13 @@ class AdminQuestion(BaseModel):
     text: str
     order_num: int
     answers: list[str]
+    image_url: str | None = None
+
+
+class AdminResult(BaseModel):
+    title: str
+    description: str | None = None
+    image_url: str | None = None
 
 
 class AdminFunnelStep(BaseModel):
@@ -63,5 +72,6 @@ class AdminResponseRow(BaseModel):
 class AdminTestReport(BaseModel):
     test: AdminTestListItem
     questions: list[AdminQuestion]
+    results: list[AdminResult]
     funnel: AdminTestFunnel
     responses: list[AdminResponseRow]
