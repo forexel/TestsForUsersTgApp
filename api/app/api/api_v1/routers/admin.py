@@ -7,13 +7,13 @@ import hashlib
 import uuid
 
 from fastapi import APIRouter, Depends, HTTPException, Response
-from sqlalchemy import func
+from sqlalchemy import func, or_
 from sqlalchemy.orm import Session
 from openpyxl import Workbook
 
 from api.app.db.session import get_db
 from api.app.dependencies.auth import get_admin_user
-from api.app.models import AdminToken, AdminUser, Test, TestEvent, TestResponse
+from api.app.models import AdminToken, AdminUser, Test, TestEvent, TestResponse, TestRunLog
 from api.app.schemas.admin import (
     AdminLoginRequest,
     AdminLoginResponse,
@@ -70,7 +70,18 @@ def admin_login(payload: AdminLoginRequest, db: Session = Depends(get_db)):
 
 @router.get("/tests", response_model=list[AdminTestListItem])
 def list_tests(admin: AdminUser = Depends(get_admin_user), db: Session = Depends(get_db)):
-    tests = _apply_admin_scope(db.query(Test), admin).order_by(Test.created_at.desc()).all()
+    base = _apply_admin_scope(db.query(Test), admin)
+    tests = (
+        base.filter(
+            or_(
+                db.query(TestRunLog.id).filter(TestRunLog.test_id == Test.id).exists(),
+                db.query(TestEvent.id).filter(TestEvent.test_id == Test.id).exists(),
+                db.query(TestResponse.id).filter(TestResponse.test_id == Test.id).exists(),
+            )
+        )
+        .order_by(Test.created_at.desc())
+        .all()
+    )
     return [
         AdminTestListItem(
             id=t.id,

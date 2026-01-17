@@ -102,7 +102,7 @@
   const renderResponses = (report) => {
     if (!responsesTable) return;
     const { questions, responses, test } = report;
-    const headers = ["telegram_id", "user", "result"];
+    const headers = ["telegram_id", "user", "user_type"];
     questions.forEach((q) => headers.push(q.text));
     if (test.lead_enabled) {
       if (test.lead_collect_name) headers.push("lead_name");
@@ -113,13 +113,15 @@
         headers.push("site_clicked");
       }
     }
+    headers.push("result");
     const thead = `<thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead>`;
     const rows = responses.map((r) => {
       const username = r.user_username ? `@${r.user_username}` : "";
       const fallbackId = r.user_id && r.user_id !== 0 ? `id:${r.user_id}` : "";
       const leadPhone = r.lead_phone ? `tel:${r.lead_phone}` : "";
       const identifier = username || leadPhone || fallbackId || "unknown";
-      const cols = [r.user_id, identifier, r.result_title || ""];
+      const userType = r.user_id && r.user_id !== 0 ? "telegram" : "guest";
+      const cols = [r.user_id, identifier, userType];
       questions.forEach((q) => {
         cols.push(r.answers[String(q.id)] || "");
       });
@@ -132,6 +134,7 @@
           cols.push(r.lead_site_clicked ? "yes" : "no");
         }
       }
+      cols.push(r.result_title || "");
       return `<tr>${cols.map((c) => `<td>${String(c)}</td>`).join("")}</tr>`;
     });
     responsesTable.innerHTML = thead + `<tbody>${rows.join("")}</tbody>`;
