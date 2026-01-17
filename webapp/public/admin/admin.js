@@ -137,8 +137,8 @@
   };
 
   const setAuthState = (authed) => {
-    loginBox.style.display = authed ? "none" : "block";
-    testsBox.style.display = authed ? "block" : "none";
+    loginBox.hidden = authed;
+    testsBox.hidden = !authed;
     logoutBtn.hidden = !authed;
     if (!authed) {
       reportBox.hidden = true;
