@@ -65,13 +65,17 @@
     });
   };
 
-  const renderFunnel = (funnel) => {
+  const renderFunnel = (funnel, test) => {
     const rows = [
       { label: "Заходов на экран 1", value: funnel.screen_opens },
       ...funnel.answers.map((a) => ({ label: `Ответов ${a.question_index}`, value: a.count })),
-      { label: "Отправлено лид-форм", value: funnel.lead_form_submits },
-      { label: "Клики по сайту", value: funnel.site_clicks },
     ];
+    if (test.lead_enabled) {
+      rows.push({ label: "Отправлено лид-форм", value: funnel.lead_form_submits });
+      if (test.lead_collect_site) {
+        rows.push({ label: "Клики по сайту", value: funnel.site_clicks });
+      }
+    }
     const total = rows[0]?.value || 0;
     let prev = total;
     funnelBox.innerHTML = rows
@@ -189,7 +193,7 @@
     if (reportDate) {
       reportDate.textContent = report.test.created_at ? `Создан: ${report.test.created_at}` : "";
     }
-    renderFunnel(report.funnel);
+    renderFunnel(report.funnel, report.test);
     renderResponses(report);
     renderQa(report);
     renderResults(report);
