@@ -3,7 +3,7 @@ from __future__ import annotations
 import uuid
 import logging
 
-from fastapi import APIRouter, Depends, HTTPException, status
+from fastapi import APIRouter, Depends, HTTPException, status, Request
 from sqlalchemy.orm import Session
 from fastapi import Request
 from fastapi import Response
@@ -76,6 +76,16 @@ def _build_share_link(slug: str) -> str:
     if username:
         return f"https://t.me/{username}?start=run_{slug}"
     return f"run_{slug}"
+
+
+def _maybe_init_data(request: Request) -> TelegramInitData | None:
+    raw_init = request.headers.get("X-Telegram-Init-Data") or ""
+    if not raw_init:
+        return None
+    try:
+        return parse_init_data(raw_init)
+    except HTTPException:
+        return None
 
 
 def _validate_lead_fields(test: TestModel, payload: LeadUpdate) -> None:
@@ -362,12 +372,13 @@ def log_test_completion(
 def log_test_event(
     slug: str,
     payload: TestEventCreate,
+    request: Request,
     db: Session = Depends(get_db),
-    init_data: TelegramInitData = Depends(get_init_data),
 ):
     test = get_test_by_slug(db, slug)
     if not test:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test not found")
+    init_data = _maybe_init_data(request)
     event_type = payload.event_type
     if event_type not in {"screen_open", "answer", "lead_form_submit", "site_click"}:
         raise HTTPException(status_code=status.HTTP_422_UNPROCESSABLE_ENTITY, detail="Invalid event_type")
@@ -377,7 +388,7 @@ def log_test_event(
         test=test,
         test_id=getattr(test, "id", None),
         test_slug=slug,
-        user_id=init_data.user.id,
+        user_id=init_data.user.id if init_data else 0,
         event_type=event_type,
         question_index=payload.question_index,
     )
@@ -390,19 +401,20 @@ def log_test_event(
 def create_test_response(
     slug: str,
     payload: TestResponseCreate,
+    request: Request,
     db: Session = Depends(get_db),
-    init_data: TelegramInitData = Depends(get_init_data),
 ):
     test = get_test_by_slug(db, slug)
     if not test:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Test not found")
+    init_data = _maybe_init_data(request)
     answers = [a.model_dump() if hasattr(a, "model_dump") else a.dict() for a in payload.answers]
     response = TestResponse(
         test=test,
         test_id=getattr(test, "id", None),
         test_slug=slug,
-        user_id=init_data.user.id,
-        user_username=getattr(init_data.user, "username", None),
+        user_id=init_data.user.id if init_data else 0,
+        user_username=getattr(init_data.user, "username", None) if init_data else None,
         result_title=payload.result_title,
         answers=answers,
     )
@@ -416,14 +428,17 @@ def create_test_response(
 def update_test_response(
     response_id: uuid.UUID,
     payload: LeadUpdate,
+    request: Request,
     db: Session = Depends(get_db),
-    init_data: TelegramInitData = Depends(get_init_data),
 ):
     response = db.query(TestResponse).filter(TestResponse.id == response_id).first()
     if not response:
         raise HTTPException(status_code=status.HTTP_404_NOT_FOUND, detail="Response not found")
-    if response.user_id and response.user_id != init_data.user.id:
+    init_data = _maybe_init_data(request)
+    if response.user_id and init_data and response.user_id != init_data.user.id:
         raise HTTPException(status_code=status.HTTP_403_FORBIDDEN, detail="Forbidden")
+    if response.user_id and not init_data:
+        raise HTTPException(status_code=status.HTTP_401_UNAUTHORIZED, detail="Missing Telegram init data")
     test = get_test_by_id(db, response.test_id) if response.test_id else None
     if test:
         _validate_lead_fields(test, payload)
