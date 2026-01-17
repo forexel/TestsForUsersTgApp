@@ -274,6 +274,33 @@ table th,
   gap: 4px;
 }
 
+.qa-answer {
+  display: grid;
+  gap: 6px;
+  padding: 8px;
+  border: 1px solid var(--border);
+  border-radius: 8px;
+  background: #faf7f3;
+}
+
+.qa-answer__title {
+  font-weight: 600;
+  color: var(--text);
+}
+
+.qa-answer__desc {
+  color: var(--muted);
+  font-size: 12px;
+  line-height: 1.4;
+}
+
+.qa-answer__image {
+  width: 100%;
+  max-width: 260px;
+  border-radius: 8px;
+  border: 1px solid var(--border);
+}
+
 .qa-item__image {
   width: 100%;
   max-width: 260px;

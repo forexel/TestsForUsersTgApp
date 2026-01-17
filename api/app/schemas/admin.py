@@ -30,11 +30,17 @@ class AdminTestListItem(BaseModel):
     lead_site_url: str | None = None
 
 
+class AdminAnswer(BaseModel):
+    text: str | None = None
+    description: str | None = None
+    image_url: str | None = None
+
+
 class AdminQuestion(BaseModel):
     id: str
     text: str
     order_num: int
-    answers: list[str]
+    answers: list[AdminAnswer]
     image_url: str | None = None
 
 

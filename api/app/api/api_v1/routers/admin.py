@@ -17,6 +17,7 @@ from api.app.models import AdminToken, AdminUser, Test, TestEvent, TestResponse,
 from api.app.schemas.admin import (
     AdminLoginRequest,
     AdminLoginResponse,
+    AdminAnswer,
     AdminQuestion,
     AdminResponseRow,
     AdminResult,
@@ -186,14 +187,28 @@ def get_test_report(test_id: uuid.UUID, admin: AdminUser = Depends(get_admin_use
             id=str(q.id),
             text=q.text,
             order_num=q.order_num,
-            answers=[a.text or "" for a in sorted(q.answers, key=lambda a: a.order_num)],
+            answers=[
+                AdminAnswer(
+                    text=a.text or "",
+                    description=a.explanation_text,
+                    image_url=a.image_url,
+                )
+                for a in sorted(q.answers, key=lambda a: a.order_num)
+            ],
             image_url=q.image_url,
         )
         for q in sorted(test.questions, key=lambda q: q.order_num)
     ]
     if not questions and test.type == "cards":
-        answers = [a.text or "" for a in sorted(test.answers, key=lambda a: a.order_num)]
-        questions = [AdminQuestion(id="card", text="Выбранная карта", order_num=1, answers=answers, image_url=None)]
+        answers = [
+            AdminAnswer(
+                text=a.text or "",
+                description=a.explanation_text,
+                image_url=a.image_url,
+            )
+            for a in sorted(test.answers, key=lambda a: a.order_num)
+        ]
+        questions = [AdminQuestion(id="card", text="Карты", order_num=1, answers=answers, image_url=None)]
     results = [
         AdminResult(title=r.title, description=r.description, image_url=r.image_url)
         for r in sorted(test.results, key=lambda r: r.order_num or 0)

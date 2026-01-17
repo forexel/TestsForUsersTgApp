@@ -151,7 +151,12 @@
     report.questions.forEach((q) => {
       const item = document.createElement("div");
       item.className = "qa-item";
-      const answers = (q.answers || []).filter(Boolean).map((a) => `<div>${a}</div>`).join("");
+      const answers = (q.answers || []).map((a) => {
+        const title = a.text ? `<div class="qa-answer__title">${a.text}</div>` : "";
+        const desc = a.description ? `<div class="qa-answer__desc">${a.description}</div>` : "";
+        const img = a.image_url ? `<img class="qa-answer__image" src="${a.image_url}" alt="answer" />` : "";
+        return `<div class="qa-answer">${img}${title}${desc}</div>`;
+      }).join("");
       const image = q.image_url ? `<img class="qa-item__image" src="${q.image_url}" alt="question" />` : "";
       item.innerHTML = `
         <div class="qa-item__title">${q.order_num}. ${q.text}</div>
