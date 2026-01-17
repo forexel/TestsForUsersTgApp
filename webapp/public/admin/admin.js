@@ -192,7 +192,9 @@
     const ownerId = report.test.created_by ? `id:${report.test.created_by}` : "";
     reportOwner.textContent = `Создатель: ${ownerName} ${ownerId}`.trim();
     if (reportDate) {
-      reportDate.textContent = report.test.created_at ? `Создан: ${report.test.created_at}` : "";
+      const raw = report.test.created_at;
+      const shortDate = raw ? String(raw).split("T")[0] : "";
+      reportDate.textContent = shortDate ? `Создан: ${shortDate}` : "";
     }
     renderFunnel(report.funnel, report.test);
     renderResponses(report);
