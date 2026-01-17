@@ -120,11 +120,12 @@
     headers.push("result");
     const thead = `<thead><tr>${headers.map((h) => `<th>${h}</th>`).join("")}</tr></thead>`;
     const rows = responses.map((r) => {
-      const username = r.user_username ? `@${r.user_username}` : "";
+      const isUnauthorized = r.user_username === "unauthorized";
+      const username = r.user_username && r.user_username !== "unauthorized" ? `@${r.user_username}` : "";
       const fallbackId = r.user_id && r.user_id !== 0 ? `id:${r.user_id}` : "";
       const leadPhone = r.lead_phone ? `tel:${r.lead_phone}` : "";
-      const identifier = username || leadPhone || fallbackId || "unknown";
-      const userType = r.user_id && r.user_id !== 0 ? "telegram" : "guest";
+      const identifier = username || leadPhone || fallbackId || (isUnauthorized ? "unauthorized" : "unknown");
+      const userType = isUnauthorized ? "unauthorized" : (r.user_id && r.user_id !== 0 ? "telegram" : "guest");
       const cols = [r.user_id, identifier, userType];
       questions.forEach((q) => {
         cols.push(r.answers[String(q.id)] || "");

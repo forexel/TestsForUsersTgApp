@@ -414,7 +414,7 @@ def create_test_response(
         test_id=getattr(test, "id", None),
         test_slug=slug,
         user_id=init_data.user.id if init_data else 0,
-        user_username=getattr(init_data.user, "username", None) if init_data else None,
+        user_username=getattr(init_data.user, "username", None) if init_data else "unauthorized",
         result_title=payload.result_title,
         answers=answers,
     )
