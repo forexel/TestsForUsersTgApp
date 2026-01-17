@@ -41,11 +41,11 @@
 
   const renderTests = (filter = "") => {
     testsList.innerHTML = "";
-    testsError.textContent = "";
+    if (testsError) testsError.textContent = "";
     const needle = (filter || "").toLowerCase();
     const filtered = tests.filter((t) => String(t.title || "").toLowerCase().includes(needle));
     if (!filtered.length) {
-      testsError.textContent = "Тесты не найдены";
+      if (testsError) testsError.textContent = "Тесты не найдены";
       return;
     }
     filtered.forEach((t) => {
@@ -123,7 +123,7 @@
   };
 
   const loadTests = async () => {
-    testsError.textContent = "";
+    if (testsError) testsError.textContent = "";
     try {
       const data = await fetchJson(`${API_BASE}/admin/tests`, {
         headers: { "X-Admin-Token": getToken() },
@@ -132,7 +132,7 @@
       renderTests();
     } catch (err) {
       tests = [];
-      testsError.textContent = err.message || "Не удалось загрузить тесты";
+      if (testsError) testsError.textContent = err.message || "Не удалось загрузить тесты";
     }
   };
 
