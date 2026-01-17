@@ -394,42 +394,47 @@ function MultiRunner({
   }, [test]);
 
   const computeResult = (): { title: string; description?: string; imageUrl?: string | null } | null => {
-    if (!questions.length) return null;
-    const picks = questions.map((q) => {
-      const aId = selected[q.id];
-      const a = q.answers.find(x => String(x.id) === String(aId));
-      return a ? { order: a.order_num, id: a.id } : null;
-    }).filter(Boolean) as { order: number; id: string }[];
-    if (picks.length !== questions.length) return null;
+    try {
+      if (!questions.length) return { title: "Результат", description: undefined };
+      const picks = questions.map((q) => {
+        const aId = selected[q.id];
+        const a = (q.answers || []).find(x => String(x.id) === String(aId));
+        return a ? { order: a.order_num, id: a.id } : null;
+      }).filter(Boolean) as { order: number; id: string }[];
+      if (picks.length !== questions.length) return null;
 
-    const results = (test.results || []).slice().sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
-    if (isPointsMode) {
-      const total = picks.reduce((sum, p) => sum + (p.order || 1), 0);
-      const ranged = results.find((r) => {
-        const min = r.min_score ?? null;
-        const max = r.max_score ?? null;
-        if (min === null || max === null) return false;
-        return total >= min && total <= max;
-      });
-      if (ranged) return { title: ranged.title, description: ranged.description || undefined, imageUrl: ranged.image_url };
-      const fallback = results[0] || results[results.length - 1];
-      return fallback ? { title: fallback.title, description: fallback.description || undefined, imageUrl: fallback.image_url } : null;
-    } else {
-      const counts: Record<number, number> = {};
-      picks.forEach(p => { counts[p.order] = (counts[p.order] || 0) + 1; });
-      let bestOrder = 1;
-      let bestCount = -1;
-      Object.keys(counts).map(k => Number(k)).sort((a, b) => a - b).forEach(o => {
-        const c = counts[o];
-        if (c > bestCount || (c === bestCount && o < bestOrder)) { bestCount = c; bestOrder = o; }
-      });
-      const idx = Math.max(0, Math.min((results.length || answersCount) - 1, bestOrder - 1));
-      const res = results[idx];
-      if (res) return { title: res.title, description: res.description || undefined, imageUrl: res.image_url };
-      const a = questions[0]?.answers?.[bestOrder - 1];
-      if (a?.explanation_title || a?.explanation_text) {
-        return { title: a.explanation_title || "Результат", description: a.explanation_text || undefined };
+      const results = (test.results || []).slice().sort((a, b) => (a.order_num ?? 0) - (b.order_num ?? 0));
+      if (isPointsMode) {
+        const total = picks.reduce((sum, p) => sum + (p.order || 1), 0);
+        const ranged = results.find((r) => {
+          const min = r.min_score ?? null;
+          const max = r.max_score ?? null;
+          if (min === null || max === null) return false;
+          return total >= min && total <= max;
+        });
+        if (ranged) return { title: ranged.title, description: ranged.description || undefined, imageUrl: ranged.image_url };
+        const fallback = results[0] || results[results.length - 1];
+        return fallback ? { title: fallback.title, description: fallback.description || undefined, imageUrl: fallback.image_url } : { title: "Результат", description: undefined };
+      } else {
+        const counts: Record<number, number> = {};
+        picks.forEach(p => { counts[p.order] = (counts[p.order] || 0) + 1; });
+        let bestOrder = 1;
+        let bestCount = -1;
+        Object.keys(counts).map(k => Number(k)).sort((a, b) => a - b).forEach(o => {
+          const c = counts[o];
+          if (c > bestCount || (c === bestCount && o < bestOrder)) { bestCount = c; bestOrder = o; }
+        });
+        const idx = Math.max(0, Math.min((results.length || answersCount) - 1, bestOrder - 1));
+        const res = results[idx];
+        if (res) return { title: res.title, description: res.description || undefined, imageUrl: res.image_url };
+        const a = questions[0]?.answers?.[bestOrder - 1];
+        if (a?.explanation_title || a?.explanation_text) {
+          return { title: a.explanation_title || "Результат", description: a.explanation_text || undefined };
+        }
+        return { title: "Результат", description: undefined };
       }
+    } catch (err) {
+      warn("computeResult fail", err);
       return { title: "Результат", description: undefined };
     }
   };
@@ -440,6 +445,7 @@ function MultiRunner({
 
   if (!done && current) {
     const picked = selected[current.id] || null;
+    const answersList = current.answers || [];
     return (
       <div className="tp-wrap">
         <div className="tp-root-title">Выбери ответ</div>
@@ -449,7 +455,7 @@ function MultiRunner({
             {current.image_url && <img className="tp-question-image" src={current.image_url} alt="question" />}
             <h3 className="tp-question-title">{current.text}</h3>
             <div className="tp-options">
-              {current.answers.map((a) => (
+              {answersList.map((a) => (
                 <button
                   key={a.id}
                   type="button"
