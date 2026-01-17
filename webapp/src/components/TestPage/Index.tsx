@@ -443,6 +443,28 @@ function MultiRunner({
     if (done) onResultReady?.();
   }, [done, onResultReady]);
 
+  const result = computeResult();
+  const resultTitle = result?.title || "Результат";
+
+  useEffect(() => {
+    if (!done || !createResponse || responseId !== null) return;
+    const answersPayload = questions.map((q, idx) => {
+      const aId = selected[q.id];
+      const a = q.answers.find((x) => String(x.id) === String(aId));
+      return {
+        question_id: q.id,
+        question_text: q.text,
+        answer_id: a?.id,
+        answer_text: a?.text || "",
+        order_num: idx + 1,
+      };
+    });
+    createResponse(answersPayload, resultTitle).then((id) => {
+      const next = id || null;
+      setResponseId(next);
+    });
+  }, [done, createResponse, questions, selected, responseId, resultTitle]);
+
   if (!done && current) {
     const picked = selected[current.id] || null;
     const answersList = current.answers || [];
@@ -483,27 +505,6 @@ function MultiRunner({
       </div>
     );
   }
-
-  const result = computeResult();
-  const resultTitle = result?.title || "Результат";
-  useEffect(() => {
-    if (!done || !createResponse || responseId !== null) return;
-    const answersPayload = questions.map((q, idx) => {
-      const aId = selected[q.id];
-      const a = q.answers.find((x) => String(x.id) === String(aId));
-      return {
-        question_id: q.id,
-        question_text: q.text,
-        answer_id: a?.id,
-        answer_text: a?.text || "",
-        order_num: idx + 1,
-      };
-    });
-    createResponse(answersPayload, resultTitle).then((id) => {
-      const next = id || null;
-      setResponseId(next);
-    });
-  }, [done, createResponse, questions, selected, responseId, resultTitle]);
   return (
     <div className="tp-wrap">
       <div className="tp-root-title">Результат</div>

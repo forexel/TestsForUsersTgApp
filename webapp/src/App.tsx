@@ -1,4 +1,4 @@
-import { useEffect, useMemo, useState } from "react";
+import React, { useEffect, useMemo, useState } from "react";
 import axios from "axios";
 import WebApp from "@twa-dev/sdk";
 
@@ -139,57 +139,98 @@ export default function App() {
   const user = useMemo<TelegramUser | null>(() => initDataUnsafe?.user ?? null, [initDataUnsafe]);
 
   return (
-    <main className="screen" style={{ minHeight: "100vh" }}>
-      {route.name === "home" && (
-        <Home onCreate={() => pushHash("#/select")} />
-      )}
-      {route.name === "select" && (
-        <SelectType
-          onBack={() => pushHash("#/home")}
-          onNext={(type, leadEnabled) => {
-            const leadParam = leadEnabled ? "&lead=1" : "";
-            pushHash(`#/editor?type=${type}${leadParam}`);
-          }}
-        />
-      )}
-      {route.name === "editor" && route.testType === "single" && (
-        <SingleEditor
-          api={api}
-          {...(user ? { user } : {})}
-          editSlug={route.slug}
-          leadEnabledDefault={route.leadEnabled}
-          onClose={() => pushHash("#/home")}
-          onCreated={(t) => pushHash(`#/testsuccess?slug=${t.slug}`)}
-        />
-      )}
-      {route.name === "editor" && route.testType === "multi" && (
-        <MultiQuestionEditor
-          api={api}
-          onClose={() => pushHash("#/home")}
-          editSlug={route.slug}
-          leadEnabledDefault={route.leadEnabled}
-        />
-      )}
-      {route.name === "editor" && route.testType === "cards" && (
-        <CardsEditor
-          api={api}
-          onClose={() => pushHash("#/home")}
-          editSlug={route.slug}
-          leadEnabledDefault={route.leadEnabled}
-        />
-      )}
-      {route.name === "success" && (
-        <Testsuccess slug={route.slug} onClose={() => pushHash("#/home")} />
-      )}
-      {route.name === "run" && (
-        <TestPage api={api} slug={route.slug} />
-      )}
-      {route.name === "result" && (
-        <ResultPage api={api} slug={route.slug} answerId={route.answerId} responseId={route.responseId} />
-      )}
-      {route.name === "statistic" && (
-        <Statistic api={api} />
-      )}
-    </main>
+    <ErrorBoundary>
+      <main className="screen" style={{ minHeight: "100vh" }}>
+        {route.name === "home" && (
+          <Home onCreate={() => pushHash("#/select")} />
+        )}
+        {route.name === "select" && (
+          <SelectType
+            onBack={() => pushHash("#/home")}
+            onNext={(type, leadEnabled) => {
+              const leadParam = leadEnabled ? "&lead=1" : "";
+              pushHash(`#/editor?type=${type}${leadParam}`);
+            }}
+          />
+        )}
+        {route.name === "editor" && route.testType === "single" && (
+          <SingleEditor
+            api={api}
+            {...(user ? { user } : {})}
+            editSlug={route.slug}
+            leadEnabledDefault={route.leadEnabled}
+            onClose={() => pushHash("#/home")}
+            onCreated={(t) => pushHash(`#/testsuccess?slug=${t.slug}`)}
+          />
+        )}
+        {route.name === "editor" && route.testType === "multi" && (
+          <MultiQuestionEditor
+            api={api}
+            onClose={() => pushHash("#/home")}
+            editSlug={route.slug}
+            leadEnabledDefault={route.leadEnabled}
+          />
+        )}
+        {route.name === "editor" && route.testType === "cards" && (
+          <CardsEditor
+            api={api}
+            onClose={() => pushHash("#/home")}
+            editSlug={route.slug}
+            leadEnabledDefault={route.leadEnabled}
+          />
+        )}
+        {route.name === "success" && (
+          <Testsuccess slug={route.slug} onClose={() => pushHash("#/home")} />
+        )}
+        {route.name === "run" && (
+          <TestPage api={api} slug={route.slug} />
+        )}
+        {route.name === "result" && (
+          <ResultPage api={api} slug={route.slug} answerId={route.answerId} responseId={route.responseId} />
+        )}
+        {route.name === "statistic" && (
+          <Statistic api={api} />
+        )}
+      </main>
+    </ErrorBoundary>
   );
+}
+
+class ErrorBoundary extends React.Component<
+  { children: React.ReactNode },
+  { error: Error | null; info: React.ErrorInfo | null }
+> {
+  constructor(props: { children: React.ReactNode }) {
+    super(props);
+    this.state = { error: null, info: null };
+  }
+
+  componentDidCatch(error: Error, info: React.ErrorInfo) {
+    this.setState({ error, info });
+  }
+
+  render() {
+    if (this.state.error) {
+      const dbg = (typeof window !== "undefined" && (window as any).__DBG) || [];
+      return (
+        <div style={{ padding: 16, fontFamily: "Georgia, serif" }}>
+          <h2 style={{ margin: "0 0 8px" }}>Ошибка в WebApp</h2>
+          <pre style={{ whiteSpace: "pre-wrap", background: "#f7f2ec", padding: 12, borderRadius: 8 }}>
+            {this.state.error.message}
+          </pre>
+          {this.state.info?.componentStack && (
+            <pre style={{ whiteSpace: "pre-wrap", background: "#f7f2ec", padding: 12, borderRadius: 8, marginTop: 8 }}>
+              {this.state.info.componentStack}
+            </pre>
+          )}
+          {Array.isArray(dbg) && dbg.length > 0 && (
+            <pre style={{ whiteSpace: "pre-wrap", background: "#f7f2ec", padding: 12, borderRadius: 8, marginTop: 8 }}>
+              {dbg.slice(-20).join("\n")}
+            </pre>
+          )}
+        </div>
+      );
+    }
+    return this.props.children;
+  }
 }
