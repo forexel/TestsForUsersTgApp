@@ -453,16 +453,18 @@ textarea {
 .selector-title { font-size: 22px; font-weight: 800; color: #2563eb; margin: 4px 0 12px; }
 .radio-list { display: flex; flex-direction: column; gap: 12px; padding: 4px 2px 16px; }
 .radio-item { display: flex; align-items: center; gap: 10px; font-size: 16px; }
+.radio-item input[type="checkbox"] { margin: 0; }
 .radio-item--lead { margin-top: 10px; }
 .radio-item input[type="checkbox"] {
   appearance: none;
-  width: 1.05em;
-  height: 1.05em;
+  width: 18px;
+  height: 18px;
   border: 2px solid #8b8b8b;
   border-radius: 0;
   background: #fff;
   display: inline-block;
   position: relative;
+  box-sizing: border-box;
 }
 .radio-item input[type="checkbox"]:checked {
   border-color: #2563eb;
@@ -472,9 +474,9 @@ textarea {
   content: "";
   position: absolute;
   left: 5px;
-  top: 1px;
-  width: 5px;
-  height: 9px;
+  top: 2px;
+  width: 4px;
+  height: 8px;
   border: solid #fff;
   border-width: 0 2px 2px 0;
   transform: rotate(45deg);
