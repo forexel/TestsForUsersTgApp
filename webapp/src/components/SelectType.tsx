@@ -44,7 +44,7 @@ export function SelectType({
           />
           <span>Несколько вопросов</span>
         </label>
-        <label className="radio-item" style={{ marginTop: 4 }}>
+        <label className="radio-item radio-item--lead">
           <input
             type="checkbox"
             checked={leadEnabled}
