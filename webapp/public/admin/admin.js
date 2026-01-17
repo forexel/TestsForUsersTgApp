@@ -107,7 +107,7 @@
   const renderResponses = (report) => {
     if (!responsesTable) return;
     const { questions, responses, test } = report;
-    const headers = ["telegram_id", "user", "user_type"];
+    const headers = ["telegram_id", "user"];
     questions.forEach((q, idx) => headers.push(`Вопрос ${idx + 1}`));
     if (test.lead_enabled) {
       if (test.lead_collect_name) headers.push("lead_name");
@@ -125,9 +125,8 @@
       const username = r.user_username && r.user_username !== "unauthorized" ? `@${r.user_username}` : "";
       const fallbackId = r.user_id && r.user_id !== 0 ? `id:${r.user_id}` : "";
       const leadPhone = r.lead_phone ? `tel:${r.lead_phone}` : "";
-      const identifier = username || leadPhone || fallbackId || (isUnauthorized ? "unauthorized" : "unknown");
-      const userType = isUnauthorized ? "unauthorized" : (r.user_id && r.user_id !== 0 ? "telegram" : "guest");
-      const cols = [r.user_id, identifier, userType];
+      const identifier = username || fallbackId || leadPhone || (isUnauthorized ? "unauthorized" : "unknown");
+      const cols = [r.user_id, identifier];
       questions.forEach((q) => {
         cols.push(r.answers[String(q.id)] || "");
       });
