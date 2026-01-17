@@ -56,6 +56,12 @@ export interface TestDraft {
   isPublic: boolean;
   bgColor?: string;
   scoringMode?: ScoringMode;
+  leadEnabled?: boolean;
+  leadCollectName?: boolean;
+  leadCollectPhone?: boolean;
+  leadCollectEmail?: boolean;
+  leadCollectSite?: boolean;
+  leadSiteUrl?: string;
   questions: QuestionDraft[];
   answers: AnswerDraft[]; // used for "cards" tests
   results: ResultDraft[];
