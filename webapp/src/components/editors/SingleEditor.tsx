@@ -15,12 +15,14 @@ export default function SingleEditor({
   onClose,
   onCreated,
   editSlug,
+  leadEnabledDefault,
 }: {
   api: AxiosInstance;
   user?: TelegramUser;
   onClose: () => void;
   onCreated?: (t: { slug: string; title: string; type: "single" }) => void;
   editSlug?: string;
+  leadEnabledDefault?: boolean;
 }) {
   const [title, setTitle] = useState<string>("");
   const [step, setStep] = useState<"title" | "question" | "lead" | "color">("title");
@@ -28,7 +30,7 @@ export default function SingleEditor({
   const [imageError, setImageError] = useState<string | null>(null);
   const [bgColor, setBgColor] = useState<string>(BG_COLORS[0]);
   const [leadSettings, setLeadSettings] = useState<LeadSettingsValue>({
-    leadEnabled: false,
+    leadEnabled: Boolean(leadEnabledDefault),
     leadCollectName: false,
     leadCollectPhone: false,
     leadCollectEmail: false,
@@ -177,6 +179,8 @@ export default function SingleEditor({
   if (step === "title") {
     return <TitleStep initial={title} onNext={(val) => { setTitle(val); setStep("question"); }} onBack={onClose} />;
   }
+  const showLeadStep = Boolean(isEdit || leadEnabledDefault);
+
   if (step === "question") {
     return (
       <QuestionStep
@@ -186,12 +190,12 @@ export default function SingleEditor({
         onImageError={setImageError}
         submitting={submitting}
         error={submitError}
-        onNext={() => setStep("lead")}
+        onNext={() => setStep(showLeadStep ? "lead" : "color")}
         onBack={() => setStep("title")}
       />
     );
   }
-  if (step === "lead") {
+  if (step === "lead" && showLeadStep) {
     return (
       <section className="card form-card">
         <LeadSettings value={leadSettings} onChange={setLeadSettings} />
@@ -207,7 +211,7 @@ export default function SingleEditor({
       value={bgColor}
       onChange={setBgColor}
       submitting={submitting}
-      onBack={() => setStep("lead")}
+      onBack={() => setStep(showLeadStep ? "lead" : "question")}
       onSubmit={() => save({ question: qa.question, answers: qa.answers, imageUrl: qa.imageUrl })}
       mode={isEdit ? "edit" : "create"}
     />

@@ -7,7 +7,7 @@ import { AnswerDraft, QuestionDraft, ResultDraft, TestDraft, ScoringMode } from 
 import type { TestRead } from "../../types/tests";
 import { LeadSettings, LeadSettingsValue } from "./LeadSettings";
 
-type Props = { api: AxiosInstance; onClose: () => void; editSlug?: string };
+type Props = { api: AxiosInstance; onClose: () => void; editSlug?: string; leadEnabledDefault?: boolean };
 
 const STORAGE_KEY = "multi_draft_v1";
 const BG_COLORS = ["3E8BBF", "ED7AC3", "73C363", "9A7071"];
@@ -41,7 +41,7 @@ function buildPointRanges(questionCount: number, answerCount: number): PointRang
   });
 }
 
-const initialDraft = (): TestDraft => ({
+const initialDraft = (leadEnabledDefault?: boolean): TestDraft => ({
   slug: "",
   title: "",
   type: "multi",
@@ -49,7 +49,7 @@ const initialDraft = (): TestDraft => ({
   isPublic: true,
   bgColor: BG_COLORS[0],
   scoringMode: "majority",
-  leadEnabled: false,
+  leadEnabled: Boolean(leadEnabledDefault),
   leadCollectName: false,
   leadCollectPhone: false,
   leadCollectEmail: false,
@@ -60,8 +60,8 @@ const initialDraft = (): TestDraft => ({
   results: [defaultResult()],
 });
 
-export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
-  const [draft, setDraft] = useState<TestDraft>(() => initialDraft());
+export function MultiQuestionEditor({ api, onClose, editSlug, leadEnabledDefault }: Props) {
+  const [draft, setDraft] = useState<TestDraft>(() => initialDraft(leadEnabledDefault));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4 | 5>(1);
@@ -202,6 +202,10 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
     );
   }
 
+  const showLeadStep = Boolean(isEdit || leadEnabledDefault);
+  const colorStep = showLeadStep ? 5 : 4;
+  const leadStep = showLeadStep ? 4 : null;
+
   // Intro step: title + scoring choice
   if (step === 1) {
     return (
@@ -263,11 +267,11 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
           {error && <p className="error">{error}</p>}
           <footer className="actions bottom">
             <button type="button" className="secondary" onClick={() => setStep(2)} disabled={submitting}>Назад</button>
-          <button type="button" onClick={() => setStep(4)} disabled={!canSubmit || submitting}>Далее</button>
+            <button type="button" onClick={() => setStep(colorStep)} disabled={!canSubmit || submitting}>Далее</button>
           </footer>
         </form>
       )}
-      {step === 4 && (
+      {leadStep !== null && step === leadStep && (
         <section className="form">
           <LeadSettings
             value={{
@@ -289,11 +293,11 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
           />
           <footer className="actions bottom">
             <button type="button" className="secondary" onClick={() => setStep(3)} disabled={submitting}>Назад</button>
-            <button type="button" onClick={() => setStep(5)} disabled={submitting}>Далее</button>
+            <button type="button" onClick={() => setStep(colorStep)} disabled={submitting}>Далее</button>
           </footer>
         </section>
       )}
-      {step === 5 && (
+      {step === colorStep && (
         <section className="form">
           <h2 className="form-title">Выберите цвет фона</h2>
           <div className="color-grid">
@@ -310,7 +314,7 @@ export function MultiQuestionEditor({ api, onClose, editSlug }: Props) {
           </div>
           {error && <p className="error">{error}</p>}
           <footer className="actions bottom">
-            <button type="button" className="secondary" onClick={() => setStep(4)} disabled={submitting}>Назад</button>
+            <button type="button" className="secondary" onClick={() => setStep(showLeadStep ? 4 : 3)} disabled={submitting}>Назад</button>
             <button type="button" onClick={submitDraft} disabled={!canSubmit || submitting}>
               {submitting ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}
             </button>

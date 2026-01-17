@@ -3,8 +3,15 @@
 import { useState } from "react";
 import { TestType } from "../types";
 
-export function SelectType({ onBack, onNext }: { onBack: () => void; onNext: (type: TestType) => void }) {
+export function SelectType({
+  onBack,
+  onNext,
+}: {
+  onBack: () => void;
+  onNext: (type: TestType, leadEnabled: boolean) => void;
+}) {
   const [selected, setSelected] = useState<TestType | null>(null);
+  const [leadEnabled, setLeadEnabled] = useState(false);
 
   return (
     <section className="card selector" style={{ marginTop: 0 }}>
@@ -38,6 +45,14 @@ export function SelectType({ onBack, onNext }: { onBack: () => void; onNext: (ty
           <span>Несколько вопросов</span>
         </label>
       </div>
+      <label className="checkbox" style={{ marginTop: 12 }}>
+        <input
+          type="checkbox"
+          checked={leadEnabled}
+          onChange={(e) => setLeadEnabled(e.target.checked)}
+        />
+        Сбор лидов
+      </label>
       <div className="actions bottom">
         <button className="secondary" type="button" onClick={onBack}>Назад</button>
         <button
@@ -45,8 +60,7 @@ export function SelectType({ onBack, onNext }: { onBack: () => void; onNext: (ty
           disabled={!selected}
           onClick={() => {
             if (selected) {
-              try { window.location.assign(`#/editor?type=${selected}`); } catch { window.location.hash = `#/editor?type=${selected}`; }
-              onNext(selected);
+              onNext(selected, leadEnabled);
             }
           }}
         >

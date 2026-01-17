@@ -7,20 +7,20 @@ import { compressImage } from "../../utils/image";
 import type { TestRead } from "../../types/tests";
 import { LeadSettings, LeadSettingsValue } from "./LeadSettings";
 
-type Props = { api: AxiosInstance; onClose: () => void; editSlug?: string };
+type Props = { api: AxiosInstance; onClose: () => void; editSlug?: string; leadEnabledDefault?: boolean };
 
 const defaultAnswer = (order: number): AnswerDraft => ({ orderNum: order, text: "" });
 const defaultResult = (): ResultDraft => ({ title: "Результат", description: "", minScore: null, maxScore: null });
 const BG_COLORS = ["3E8BBF", "ED7AC3", "73C363", "9A7071"];
 
-const initialDraft = (): TestDraft => ({
+const initialDraft = (leadEnabledDefault?: boolean): TestDraft => ({
   slug: "",
   title: "",
   type: "cards",
   description: "",
   isPublic: true,
   bgColor: BG_COLORS[0],
-  leadEnabled: false,
+  leadEnabled: Boolean(leadEnabledDefault),
   leadCollectName: false,
   leadCollectPhone: false,
   leadCollectEmail: false,
@@ -31,8 +31,8 @@ const initialDraft = (): TestDraft => ({
   results: [defaultResult()],
 });
 
-export function CardsEditor({ api, onClose, editSlug }: Props) {
-  const [draft, setDraft] = useState<TestDraft>(() => initialDraft());
+export function CardsEditor({ api, onClose, editSlug, leadEnabledDefault }: Props) {
+  const [draft, setDraft] = useState<TestDraft>(() => initialDraft(leadEnabledDefault));
   const [submitting, setSubmitting] = useState(false);
   const [error, setError] = useState<string | null>(null);
   const [step, setStep] = useState<1 | 2 | 3 | 4>(1);
@@ -169,6 +169,10 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
     );
   }
 
+  const showLeadStep = Boolean(isEdit || leadEnabledDefault);
+  const colorStep = showLeadStep ? 4 : 3;
+  const leadStep = showLeadStep ? 3 : null;
+
   if (step === 1) {
     const canNext = draft.title.trim().length > 0;
     return (
@@ -216,7 +220,7 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
         {error && <p className="error">{error}</p>}
         <footer className="actions bottom">
           <button type="button" className="secondary" onClick={() => setStep(1)} disabled={submitting}>Назад</button>
-          <button type="button" onClick={() => setStep(3)} disabled={!canSubmit || submitting}>Далее</button>
+          <button type="button" onClick={() => setStep(colorStep)} disabled={!canSubmit || submitting}>Далее</button>
         </footer>
       </form>
       {uploadDebug && (
@@ -227,7 +231,7 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
       )}
     </section>
   );
-  if (step === 3) {
+  if (leadStep !== null && step === leadStep) {
     return (
       <section className="card form-card">
         <LeadSettings
@@ -250,7 +254,7 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
         />
         <div className="actions bottom">
           <button type="button" className="secondary" onClick={() => setStep(2)} disabled={submitting}>Назад</button>
-          <button type="button" onClick={() => setStep(4)} disabled={submitting}>Далее</button>
+          <button type="button" onClick={() => setStep(colorStep)} disabled={submitting}>Далее</button>
         </div>
       </section>
     );
@@ -272,7 +276,7 @@ export function CardsEditor({ api, onClose, editSlug }: Props) {
       </div>
       {error && <p className="error">{error}</p>}
       <footer className="actions bottom">
-        <button type="button" className="secondary" onClick={() => setStep(3)} disabled={submitting}>Назад</button>
+        <button type="button" className="secondary" onClick={() => setStep(showLeadStep ? 3 : 2)} disabled={submitting}>Назад</button>
         <button type="button" disabled={submitting} onClick={submitDraft}>
           {submitting ? "Сохранение..." : isEdit ? "Сохранить" : "Создать"}
         </button>

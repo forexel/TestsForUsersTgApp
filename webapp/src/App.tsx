@@ -19,7 +19,7 @@ const api = axios.create({ baseURL: (import.meta as any).env?.VITE_API_BASE_URL 
 type Route =
   | { name: "home" }
   | { name: "select" }
-  | { name: "editor"; testType: TestType; slug?: string }
+  | { name: "editor"; testType: TestType; slug?: string; leadEnabled?: boolean }
   | { name: "success"; slug?: string }
   | { name: "run"; slug: string }
   | { name: "result"; slug: string; answerId: string; responseId?: string }
@@ -51,7 +51,8 @@ function parseHash(): Route {
     case "editor": {
       const t = (params.get("type") || "single") as TestType;
       const slug = params.get("slug") || undefined;
-      return { name: "editor", testType: t, slug };
+      const leadEnabled = params.get("lead") === "1";
+      return { name: "editor", testType: t, slug, leadEnabled };
     }
     case "testsuccess": {
       const slug = params.get("slug") || undefined;
@@ -143,22 +144,39 @@ export default function App() {
         <Home onCreate={() => pushHash("#/select")} />
       )}
       {route.name === "select" && (
-        <SelectType onBack={() => pushHash("#/home")} onNext={(type) => pushHash(`#/editor?type=${type}`)} />
+        <SelectType
+          onBack={() => pushHash("#/home")}
+          onNext={(type, leadEnabled) => {
+            const leadParam = leadEnabled ? "&lead=1" : "";
+            pushHash(`#/editor?type=${type}${leadParam}`);
+          }}
+        />
       )}
       {route.name === "editor" && route.testType === "single" && (
         <SingleEditor
           api={api}
           {...(user ? { user } : {})}
           editSlug={route.slug}
+          leadEnabledDefault={route.leadEnabled}
           onClose={() => pushHash("#/home")}
           onCreated={(t) => pushHash(`#/testsuccess?slug=${t.slug}`)}
         />
       )}
       {route.name === "editor" && route.testType === "multi" && (
-        <MultiQuestionEditor api={api} onClose={() => pushHash("#/home")} editSlug={route.slug} />
+        <MultiQuestionEditor
+          api={api}
+          onClose={() => pushHash("#/home")}
+          editSlug={route.slug}
+          leadEnabledDefault={route.leadEnabled}
+        />
       )}
       {route.name === "editor" && route.testType === "cards" && (
-        <CardsEditor api={api} onClose={() => pushHash("#/home")} editSlug={route.slug} />
+        <CardsEditor
+          api={api}
+          onClose={() => pushHash("#/home")}
+          editSlug={route.slug}
+          leadEnabledDefault={route.leadEnabled}
+        />
       )}
       {route.name === "success" && (
         <Testsuccess slug={route.slug} onClose={() => pushHash("#/home")} />

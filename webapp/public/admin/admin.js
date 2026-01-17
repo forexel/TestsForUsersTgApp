@@ -123,6 +123,16 @@
     renderTests();
   };
 
+  const setAuthState = (authed) => {
+    loginBox.style.display = authed ? "none" : "block";
+    testsBox.style.display = authed ? "block" : "none";
+    logoutBtn.hidden = !authed;
+    if (!authed) {
+      reportBox.hidden = true;
+      emptyState.hidden = false;
+    }
+  };
+
   loginBtn.addEventListener("click", async () => {
     loginError.textContent = "";
     try {
@@ -132,9 +142,7 @@
         body: JSON.stringify({ username: loginUser.value.trim(), password: loginPass.value }),
       });
       setToken(res.token);
-      loginBox.hidden = true;
-      testsBox.hidden = false;
-      logoutBtn.hidden = false;
+      setAuthState(true);
       await loadTests();
     } catch (err) {
       loginError.textContent = err.message || "Ошибка входа";
@@ -143,11 +151,7 @@
 
   logoutBtn.addEventListener("click", () => {
     setToken("");
-    loginBox.hidden = false;
-    testsBox.hidden = true;
-    logoutBtn.hidden = true;
-    reportBox.hidden = true;
-    emptyState.hidden = false;
+    setAuthState(false);
   });
 
   searchInput.addEventListener("input", (e) => {
@@ -174,16 +178,12 @@
   const init = async () => {
     const token = getToken();
     if (!token) return;
-    loginBox.hidden = true;
-    testsBox.hidden = false;
-    logoutBtn.hidden = false;
+    setAuthState(true);
     try {
       await loadTests();
     } catch {
       setToken("");
-      loginBox.hidden = false;
-      testsBox.hidden = true;
-      logoutBtn.hidden = true;
+      setAuthState(false);
     }
   };
 
