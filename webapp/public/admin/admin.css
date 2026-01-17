@@ -51,6 +51,7 @@ body {
   gap: 16px;
   padding: 16px;
   flex: 1;
+  min-width: 0;
 }
 
 .sidebar {
@@ -125,6 +126,7 @@ button {
 .content {
   display: grid;
   gap: 16px;
+  min-width: 0;
 }
 
 .card {
@@ -132,6 +134,7 @@ button {
   border: 1px solid var(--border);
   border-radius: 12px;
   padding: 16px;
+  min-width: 0;
 }
 
 .report__header {
@@ -281,6 +284,7 @@ table th,
 
 .table-wrap {
   overflow-x: auto;
+  max-width: 100%;
 }
 
 .empty {
