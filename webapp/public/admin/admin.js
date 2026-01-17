@@ -16,9 +16,13 @@
   const emptyState = document.getElementById("emptyState");
   const reportTitle = document.getElementById("reportTitle");
   const reportSlug = document.getElementById("reportSlug");
+  const reportOwner = document.getElementById("reportOwner");
   const funnelBox = document.getElementById("funnelBox");
   const responsesTable = document.getElementById("responsesTable");
   const downloadBtn = document.getElementById("downloadBtn");
+  const qaList = document.getElementById("qaList");
+  const tabs = Array.from(document.querySelectorAll(".tab"));
+  const panels = Array.from(document.querySelectorAll(".tab-panel"));
 
   let tests = [];
   let activeTestId = null;
@@ -51,26 +55,23 @@
     filtered.forEach((t) => {
       const item = document.createElement("div");
       item.className = "test-item" + (t.id === activeTestId ? " active" : "");
-      item.textContent = t.title;
+      const owner = t.created_by_username ? `@${t.created_by_username}` : "—";
+      item.innerHTML = `<div>${t.title}</div><div class="muted">${owner}</div>`;
       item.addEventListener("click", () => selectTest(t.id));
       testsList.appendChild(item);
     });
   };
 
   const renderFunnel = (funnel) => {
-    funnelBox.innerHTML = "";
     const rows = [
       { label: "Заходов на экран 1", value: funnel.screen_opens },
       ...funnel.answers.map((a) => ({ label: `Ответов ${a.question_index}`, value: a.count })),
       { label: "Отправлено лид-форм", value: funnel.lead_form_submits },
       { label: "Клики по сайту", value: funnel.site_clicks },
     ];
-    rows.forEach((row) => {
-      const div = document.createElement("div");
-      div.className = "funnel__row";
-      div.innerHTML = `<span>${row.label}</span><strong>${row.value}</strong>`;
-      funnelBox.appendChild(div);
-    });
+    funnelBox.innerHTML = rows
+      .map((row) => `<tr><td>${row.label}</td><td>${row.value}</td></tr>`)
+      .join("");
   };
 
   const renderTable = (report) => {
@@ -108,6 +109,21 @@
     responsesTable.innerHTML = thead + `<tbody>${rows.join("")}</tbody>`;
   };
 
+  const renderQa = (report) => {
+    if (!qaList) return;
+    qaList.innerHTML = "";
+    report.questions.forEach((q) => {
+      const item = document.createElement("div");
+      item.className = "qa-item";
+      const answers = (q.answers || []).filter(Boolean).join(", ");
+      item.innerHTML = `
+        <div class="qa-item__title">${q.order_num}. ${q.text}</div>
+        <div class="qa-item__answers">${answers || "Ответы не указаны"}</div>
+      `;
+      qaList.appendChild(item);
+    });
+  };
+
   const selectTest = async (id) => {
     activeTestId = id;
     renderTests(searchInput.value || "");
@@ -118,8 +134,11 @@
     });
     reportTitle.textContent = report.test.title;
     reportSlug.textContent = report.test.slug;
+    const owner = report.test.created_by_username ? `@${report.test.created_by_username}` : "—";
+    reportOwner.textContent = `Создатель: ${owner}`;
     renderFunnel(report.funnel);
     renderTable(report);
+    renderQa(report);
   };
 
   const loadTests = async () => {
@@ -169,6 +188,17 @@
 
   searchInput.addEventListener("input", (e) => {
     renderTests(e.target.value || "");
+  });
+
+  tabs.forEach((tab) => {
+    tab.addEventListener("click", () => {
+      const name = tab.getAttribute("data-tab");
+      tabs.forEach((t) => t.classList.toggle("active", t === tab));
+      panels.forEach((panel) => {
+        const panelName = panel.getAttribute("data-panel");
+        panel.classList.toggle("hidden", panelName !== name);
+      });
+    });
   });
 
   downloadBtn.addEventListener("click", async () => {

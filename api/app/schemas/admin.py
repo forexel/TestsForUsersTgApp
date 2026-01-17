@@ -32,6 +32,7 @@ class AdminQuestion(BaseModel):
     id: str
     text: str
     order_num: int
+    answers: list[str]
 
 
 class AdminFunnelStep(BaseModel):

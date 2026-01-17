@@ -46,19 +46,28 @@
             <div>
               <h1 id="reportTitle"></h1>
               <div class="muted" id="reportSlug"></div>
+              <div class="muted" id="reportOwner"></div>
             </div>
             <button id="downloadBtn">Скачать Excel</button>
           </div>
 
           <section class="card">
             <h3>Воронка</h3>
-            <div class="funnel" id="funnelBox"></div>
+            <table class="funnel-table" id="funnelBox"></table>
           </section>
 
           <section class="card">
-            <h3>Ответы пользователей</h3>
-            <div class="table-wrap">
-              <table id="responsesTable"></table>
+            <div class="tabs">
+              <button class="tab active" data-tab="responses">Ответы пользователей</button>
+              <button class="tab" data-tab="qa">Вопросы и ответы</button>
+            </div>
+            <div class="tab-panel" data-panel="responses">
+              <div class="table-wrap">
+                <table id="responsesTable"></table>
+              </div>
+            </div>
+            <div class="tab-panel hidden" data-panel="qa">
+              <div id="qaList" class="qa-list"></div>
             </div>
           </section>
         </div>

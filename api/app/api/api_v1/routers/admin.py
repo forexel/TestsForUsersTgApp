@@ -168,11 +168,17 @@ def get_test_report(test_id: uuid.UUID, admin: AdminUser = Depends(get_admin_use
     if not test:
         raise HTTPException(status_code=404, detail="Test not found")
     questions = [
-        AdminQuestion(id=str(q.id), text=q.text, order_num=q.order_num)
+        AdminQuestion(
+            id=str(q.id),
+            text=q.text,
+            order_num=q.order_num,
+            answers=[a.text or "" for a in sorted(q.answers, key=lambda a: a.order_num)],
+        )
         for q in sorted(test.questions, key=lambda q: q.order_num)
     ]
     if not questions and test.type == "cards":
-        questions = [AdminQuestion(id="card", text="Выбранная карта", order_num=1)]
+        answers = [a.text or "" for a in sorted(test.answers, key=lambda a: a.order_num)]
+        questions = [AdminQuestion(id="card", text="Выбранная карта", order_num=1, answers=answers)]
     funnel = _build_funnel(test.id, len(questions), db)
     responses = _responses_for_test(test.id, db)
     return AdminTestReport(

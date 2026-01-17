@@ -156,6 +156,22 @@ button {
   gap: 8px;
 }
 
+.funnel-table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 14px;
+}
+
+.funnel-table td {
+  padding: 8px 10px;
+  border-bottom: 1px solid var(--border);
+}
+
+.funnel-table td:last-child {
+  text-align: right;
+  font-weight: 600;
+}
+
 .funnel__row {
   display: flex;
   justify-content: space-between;
@@ -180,6 +196,55 @@ table th,
   padding: 8px;
   text-align: left;
   white-space: nowrap;
+}
+
+.tabs {
+  display: flex;
+  gap: 8px;
+  margin-bottom: 12px;
+}
+
+.tab {
+  background: #f2ebe2;
+  color: var(--text);
+  border: 1px solid var(--border);
+  padding: 8px 12px;
+  border-radius: 10px;
+  cursor: pointer;
+  font-size: 14px;
+}
+
+.tab.active {
+  background: var(--accent);
+  color: #fff;
+  border-color: var(--accent);
+}
+
+.tab-panel.hidden {
+  display: none;
+}
+
+.qa-list {
+  display: grid;
+  gap: 10px;
+}
+
+.qa-item {
+  padding: 10px 12px;
+  border: 1px solid var(--border);
+  border-radius: 10px;
+  background: #fff;
+}
+
+.qa-item__title {
+  font-weight: 600;
+  margin-bottom: 6px;
+}
+
+.qa-item__answers {
+  color: var(--muted);
+  font-size: 13px;
+  line-height: 1.4;
 }
 
 .empty {
